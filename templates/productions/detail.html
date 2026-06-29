@@ -1,0 +1,465 @@
+{% extends 'base.html' %}
+{% block title %}{{ p.name }} — Архив ИМТ{% endblock %}
+{% block page_title %}{{ p.name }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h3 class="mb-1">{{ p.name }}</h3>
+        <span class="badge bg-{{ p.status_badge }} me-2">{{ p.status_display }}</span>
+        <span class="text-muted">{{ p.genre }} &bull; {{ p.premiere_display }}</span>
+      </div>
+      <div class="d-flex gap-2">
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('productions.edit', pid=p.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% endif %}
+        <a href="{{ url_for('productions.list_productions') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i> К списку
+        </a>
+      </div>
+    </div>
+    <div class="row mt-3 g-2">
+      {% if p.acts_count %}
+      <div class="col-auto"><span class="text-muted">Актов:</span> <strong>{{ p.acts_count }}</strong></div>
+      {% endif %}
+      {% if p.music_authors %}
+      <div class="col-auto"><span class="text-muted">Музыка:</span> <strong>{{ p.music_authors_display }}</strong></div>
+      {% endif %}
+      {% if p.libretto_authors %}
+      <div class="col-auto"><span class="text-muted">Либретто:</span> <strong>{{ p.libretto_authors_display }}</strong></div>
+      {% endif %}
+    </div>
+    {% if p.literary_basis %}
+    <div class="mt-2 text-muted">
+      <i class="bi bi-bookmark"></i> Литературная основа: <strong>{{ p.literary_basis }}</strong>
+      {% if p.literary_basis_author %}(автор: {{ p.literary_basis_author }}){% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs section-tabs mb-3" id="pTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#cast">Состав</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#staging">Постановочная группа</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#materials">Материалы</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#documents">Документы</a></li>
+  {% if current_user.can_view_libretto() %}
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#libretto">Либретто</a></li>
+  {% endif %}
+</ul>
+
+<div class="tab-content">
+
+<!-- CAST -->
+<div class="tab-pane fade show active" id="cast">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-lines-fill"></i> Состав исполнителей</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addCastForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addCastForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('cast.add_cast', pid=p.id) }}" class="row g-2 align-items-start">
+          <div class="col-md-4">
+            <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+              <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск артиста..." autocomplete="off">
+              <input type="hidden" name="artist_id" class="ss-value">
+              <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <input type="text" name="role_name" class="form-control form-control-sm" placeholder="Роль (необязательно)">
+          </div>
+          <div class="col-md-2">
+            <input type="number" name="year_from" id="castYearFrom" class="form-control form-control-sm" placeholder="Год с">
+          </div>
+          <div class="col-md-2">
+            <input type="number" name="year_to" id="castYearTo" class="form-control form-control-sm" placeholder="по">
+          </div>
+          <div class="col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-imt btn-sm flex-fill">Ок</button>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addCastForm">Отмена</button>
+          </div>
+        </form>
+        <script>
+        (function(){
+          var form = document.querySelector('#addCastForm form');
+          form.addEventListener('submit', function(e){
+            var yf = document.getElementById('castYearFrom').value;
+            var yt = document.getElementById('castYearTo').value;
+            if (yf && yt && parseInt(yf) > parseInt(yt)) {
+              e.preventDefault();
+              alert('Год начала участия не может быть позже года окончания.');
+            }
+          });
+        })();
+        </script>
+      </div>
+    </div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Артист</th><th>Роль</th><th>Годы участия</th>{% if current_user.can_edit() %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for ce in p.cast_entries %}
+          <tr>
+            <td><a href="{{ url_for('artists.detail', aid=ce.artist.id) }}" class="text-decoration-none">{{ ce.artist.full_name }}</a>
+              {% if ce.artist.title %}<small class="text-muted ms-1">{{ ce.artist.title }}</small>{% endif %}
+            </td>
+            <td>{{ ce.role_name or '—' }}</td>
+            <td class="text-muted">{{ ce.years_display or '—' }}</td>
+            {% if current_user.can_edit() %}
+            <td>
+              <form method="POST" action="{{ url_for('cast.delete_cast', pid=p.id, cid=ce.id) }}" onsubmit="return confirm('Удалить?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-3">Состав не указан</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- STAGING -->
+<div class="tab-pane fade" id="staging">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-people-fill"></i> Постановочная группа</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addStagingForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addStagingForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('staging.add_to_production', pid=p.id) }}" class="row g-2 align-items-start">
+          <div class="col-md-7">
+            <div class="searchable-select position-relative" data-url="{{ url_for('api_directors') }}">
+              <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск постановщика..." autocomplete="off">
+              <input type="hidden" name="director_id" class="ss-value">
+              <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+            </div>
+          </div>
+          <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Добавить</button></div>
+          <div class="col-md-3"><a href="{{ url_for('staging.create_director') }}" class="btn btn-outline-secondary btn-sm w-100">+ Новый постановщик</a></div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addStagingForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>ФИО</th><th>Должность</th><th>Годы жизни</th>{% if current_user.can_edit() %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for pd in p.staging_group %}
+          <tr>
+            <td class="fw-semibold">{{ pd.director.full_name }}</td>
+            <td>{{ pd.director.position_display }}</td>
+            <td class="text-muted">{{ pd.director.life_years }}</td>
+            {% if current_user.can_edit() %}
+            <td>
+              <form method="POST" action="{{ url_for('staging.remove_from_production', pid=p.id, pdid=pd.id) }}" onsubmit="return confirm('Убрать?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-3">Постановочная группа не указана</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MATERIALS -->
+<div class="tab-pane fade" id="materials">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-images"></i> Материалы</span>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('photobank.list_photobank') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-camera"></i> Фотобанк
+        </a>
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('materials.add_material', pid=p.id) }}" class="btn btn-imt btn-sm">
+          <i class="bi bi-plus"></i> Добавить
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      {% set type_groups = {} %}
+      {% for mat in p.materials %}
+        {% if mat.material_type not in type_groups %}{% set _ = type_groups.update({mat.material_type: []}) %}{% endif %}
+        {% set _ = type_groups[mat.material_type].append(mat) %}
+      {% endfor %}
+      {% if p.materials %}
+        {% for mtype, mats in type_groups.items() %}
+        <h6 class="text-muted mb-2 mt-3">{{ mats[0].type_icon }} {{ mats[0].type_display }}</h6>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          {% for mat in mats %}
+          <div class="card material-card" style="width:140px">
+            {% if mat.is_image and mat.file_path %}
+            <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:90px;object-fit:cover">
+            {% else %}
+            <div class="d-flex align-items-center justify-content-center" style="height:90px;background:#f0f4ff;font-size:2rem;">
+              {{ mat.type_icon }}
+            </div>
+            {% endif %}
+            <div class="card-body p-2">
+              <small class="text-truncate d-block" title="{{ mat.title }}">{{ mat.title or mat.file_name or 'Файл' }}</small>
+              <div class="mt-1 d-flex gap-1">
+                <a href="{{ url_for('material_detail.detail', mid=mat.id) }}" class="btn btn-outline-secondary btn-sm px-2 py-0" title="Кто на материале">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if mat.file_path %}
+                <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+                  <i class="bi bi-download"></i>
+                </a>
+                {% elif mat.url %}
+                <a href="{{ mat.url }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+                  <i class="bi bi-link-45deg"></i>
+                </a>
+                {% endif %}
+                {% if current_user.can_edit() %}
+                <form method="POST" action="{{ url_for('materials.delete_material', pid=p.id, mid=mat.id) }}" onsubmit="return confirm('Удалить?')">
+                  <button class="btn btn-outline-danger btn-sm px-2 py-0"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="text-center text-muted py-4"><i class="bi bi-images" style="font-size:2rem;opacity:.3"></i><p class="mt-2">Материалы не добавлены</p></div>
+      {% endif %}
+      <div class="text-muted small mt-2"><i class="bi bi-info-circle"></i> Фото без привязки к конкретному спектаклю (например, общие/корпоративные) добавляются в <a href="{{ url_for('photobank.list_photobank') }}">Фотобанк</a>.</div>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENTS -->
+<div class="tab-pane fade" id="documents">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-file-earmark-text"></i> Документы</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addDocForm">
+        <i class="bi bi-plus"></i> Прикрепить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addDocForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('documents.add_document', pid=p.id) }}" enctype="multipart/form-data" class="row g-2">
+          <div class="col-md-3">
+            <select name="doc_type" class="form-select form-select-sm" required>
+              <option value="">— Тип —</option>
+              <option value="order">Приказ</option>
+              <option value="contract">Договор</option>
+              <option value="protocol">Протокол</option>
+              <option value="act">Акт</option>
+              <option value="other">Прочие документы</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="Название (необязательно)">
+          </div>
+          <div class="col-md-3">
+            <input type="file" name="doc_file" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-imt btn-sm w-100">Прикрепить</button>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addDocForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card-body">
+      {% if p.documents %}
+      {% set doc_groups = {} %}
+      {% for doc in p.documents %}
+        {% if doc.doc_type not in doc_groups %}{% set _ = doc_groups.update({doc.doc_type: []}) %}{% endif %}
+        {% set _ = doc_groups[doc.doc_type].append(doc) %}
+      {% endfor %}
+      {% for dtype, docs in doc_groups.items() %}
+      <h6 class="text-muted mb-2 mt-3">{{ docs[0].doc_type_display }}</h6>
+      {% for doc in docs %}
+      <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
+          <div>
+            <div>{{ doc.title or doc.file_name }}</div>
+            <small class="text-muted">{{ doc.file_name }} &bull; {{ doc.created_at.strftime('%d.%m.%Y') }}</small>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-download"></i> Скачать
+          </a>
+          {% if current_user.can_edit() %}
+          <form method="POST" action="{{ url_for('documents.delete_document', pid=p.id, did=doc.id) }}" onsubmit="return confirm('Удалить документ?')">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% endfor %}
+      {% else %}
+      <div class="text-center text-muted py-4"><i class="bi bi-file-earmark" style="font-size:2rem;opacity:.3"></i><p class="mt-2">Документы не прикреплены</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- LIBRETTO (single card per production) -->
+{% if current_user.can_view_libretto() %}
+<div class="tab-pane fade" id="libretto">
+  {% set lib = p.libretti[0] if p.libretti else None %}
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-book"></i> Основной файл либретто</div>
+    <div class="card-body">
+      {% if lib and lib.file_path %}
+      <div class="d-flex align-items-center justify-content-between">
+        <a href="{{ url_for('uploaded_file', filename=lib.file_path) }}" class="file-chip" target="_blank">
+          <i class="bi bi-file-earmark"></i> {{ lib.file_name }}
+        </a>
+        {% if current_user.can_edit_libretto() %}
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#replaceMainFile">Заменить файл</button>
+          <form method="POST" action="{{ url_for('libretti.delete_main_file', pid=p.id) }}" onsubmit="return confirm('Удалить файл либретто?')">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-muted mb-2">Файл либретто не загружен.</p>
+      {% endif %}
+
+      {% if current_user.can_edit_libretto() %}
+      <div class="{% if not lib or not lib.file_path %}mt-0{% else %}collapse mt-3{% endif %}" id="replaceMainFile">
+        <form method="POST" action="{{ url_for('libretti.upload_main', pid=p.id) }}" enctype="multipart/form-data" class="row g-2 align-items-center">
+          <div class="col-auto flex-grow-1">
+            <input type="file" name="libretto_file" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-imt btn-sm">Загрузить</button>
+          </div>
+          {% if lib and lib.file_path %}
+          <div class="col-auto">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#replaceMainFile">Отмена</button>
+          </div>
+          {% endif %}
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-ul"></i> Роли</span>
+      {% if current_user.can_edit_libretto() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addRoleForm">
+        <i class="bi bi-plus"></i> Добавить роль
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit_libretto() %}
+    <div class="collapse" id="addRoleForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('libretti.add_role', pid=p.id) }}" enctype="multipart/form-data" class="row g-2">
+          <div class="col-md-4">
+            <input type="text" name="role_name" class="form-control form-control-sm" placeholder="Название роли" required>
+          </div>
+          <div class="col-md-5">
+            <input type="file" name="role_file" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-imt btn-sm w-100">Добавить</button>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addRoleForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Роль</th><th>Файл либретто</th>{% if current_user.can_edit_libretto() %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for role in (lib.roles if lib else []) %}
+          <tr>
+            <td>{{ role.role_name }}</td>
+            <td>
+              {% if role.file_path %}
+              <a href="{{ url_for('uploaded_file', filename=role.file_path) }}" class="file-chip" target="_blank">
+                <i class="bi bi-file-earmark"></i> {{ role.file_name }}
+              </a>
+              {% else %}
+              <span class="text-muted small">файл не прикреплён</span>
+              {% endif %}
+            </td>
+            {% if current_user.can_edit_libretto() %}
+            <td class="text-nowrap">
+              <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#attachRole{{ role.id }}">
+                <i class="bi bi-paperclip"></i>
+              </button>
+              <form method="POST" action="{{ url_for('libretti.delete_role', pid=p.id, rid=role.id) }}" class="d-inline" onsubmit="return confirm('Удалить роль?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+              </form>
+              <div class="collapse mt-2" id="attachRole{{ role.id }}">
+                <form method="POST" action="{{ url_for('libretti.attach_role_file', pid=p.id, rid=role.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
+                  <input type="file" name="role_file" class="form-control form-control-sm" required>
+                  <button class="btn btn-imt btn-sm">ОК</button>
+                  <button type="button" class="btn btn-link btn-sm" data-bs-toggle="collapse" data-bs-target="#attachRole{{ role.id }}">Отмена</button>
+                </form>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="text-center text-muted py-3">Роли пока не добавлены. Они также автоматически появляются здесь при добавлении артиста в «Состав».</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</div><!-- tab-content -->
+{% endblock %}

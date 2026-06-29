@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Артисты — Архив ИМТ{% endblock %}
+{% block page_title %}Артисты{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">Найдено: <strong id="visibleCount">{{ artists|length }}</strong></span>
+  {% if current_user.can_edit() %}
+  <a href="{{ url_for('artists.create') }}" class="btn btn-imt btn-sm">
+    <i class="bi bi-plus-lg"></i> Новый артист
+  </a>
+  {% endif %}
+</div>
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="text" id="fName" class="form-control form-control-sm" placeholder="Поиск по ФИО...">
+      </div>
+      <div class="col-md-4">
+        <select id="fTitle" class="form-select form-select-sm">
+          <option value="">Все звания</option>
+          {% for t in titles %}
+          <option value="{{ t|lower }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100"><i class="bi bi-x-lg"></i> Сбросить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3" id="artistsGrid">
+  {% for a in artists %}
+  <div class="col-md-6 col-lg-4 artist-item" data-name="{{ a.full_name|lower }}" data-title="{{ (a.title or '')|lower }}">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-1">
+          <a href="{{ url_for('artists.detail', aid=a.id) }}" class="text-decoration-none">{{ a.full_name }}</a>
+        </h6>
+        {% if a.title %}<span class="badge bg-light text-secondary border mb-1">{{ a.title }}</span>{% endif %}
+        {% if a.life_years %}<div class="text-muted small">{{ a.life_years }}</div>{% endif %}
+        {% if a.work_years %}<div class="text-muted small">В театре: {{ a.work_years }}</div>{% endif %}
+        {% if a.description %}<p class="text-muted small mt-2 mb-0" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ a.description }}</p>{% endif %}
+      </div>
+      <div class="card-footer bg-transparent border-top-0 d-flex gap-1">
+        <a href="{{ url_for('artists.detail', aid=a.id) }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-eye"></i>
+        </a>
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('artists.edit', aid=a.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div id="noResults" class="text-center py-5 text-muted" style="display:none">
+  <i class="bi bi-person-badge" style="font-size:3rem;opacity:.3"></i>
+  <p class="mt-2">Артисты не найдены</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+initLiveFilter({
+  itemSelector: '#artistsGrid .artist-item',
+  countId: 'visibleCount',
+  resetBtnId: 'resetFilters',
+  filters: [
+    {inputId: 'fName',  dataKey: 'name',  event: 'input'},
+    {inputId: 'fTitle', dataKey: 'title', event: 'change', mode: 'exact'},
+  ]
+});
+function toggleNoResults(){
+  document.getElementById('noResults').style.display = (document.getElementById('visibleCount').textContent === '0') ? '' : 'none';
+}
+['fName','fTitle'].forEach(id => document.getElementById(id).addEventListener(id==='fTitle'?'change':'input', () => setTimeout(toggleNoResults,0)));
+document.getElementById('resetFilters').addEventListener('click', () => setTimeout(toggleNoResults,0));
+toggleNoResults();
+</script>
+{% endblock %}

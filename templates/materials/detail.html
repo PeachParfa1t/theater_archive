@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}{{ mat.title or mat.file_name or 'Материал' }} — Архив ИМТ{% endblock %}
+{% block page_title %}{{ mat.type_icon }} {{ mat.type_display }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h4 class="mb-1">{{ mat.title or mat.file_name or 'Без названия' }}</h4>
+        <span class="badge bg-light text-secondary border">{{ mat.type_display }}</span>
+        {% if mat.production %}
+        <span class="text-muted ms-2"><i class="bi bi-film"></i> <a href="{{ url_for('productions.detail', pid=mat.production.id) }}">{{ mat.production.name }}</a></span>
+        {% else %}
+        <span class="text-muted ms-2"><i class="bi bi-camera"></i> Фотобанк (без привязки к постановке)</span>
+        {% endif %}
+      </div>
+      <a href="{{ request.referrer or url_for('photobank.list_photobank') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Назад
+      </a>
+    </div>
+
+    {% if mat.is_image and mat.file_path %}
+    <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="img-fluid rounded mb-3" style="max-height:500px">
+    {% elif mat.file_path %}
+    <div class="d-flex align-items-center justify-content-center bg-light rounded mb-3" style="height:200px;font-size:4rem;">
+      {{ mat.type_icon }}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+      {% if mat.file_path %}
+      <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-imt btn-sm">
+        <i class="bi bi-download"></i> Скачать {{ mat.file_name }}
+      </a>
+      {% elif mat.url %}
+      <a href="{{ mat.url }}" target="_blank" class="btn btn-imt btn-sm">
+        <i class="bi bi-link-45deg"></i> Открыть по ссылке
+      </a>
+      {% endif %}
+      {% if current_user.can_edit() %}
+      <form method="POST" action="{% if mat.production %}{{ url_for('materials.delete_material', pid=mat.production.id, mid=mat.id) }}{% else %}{{ url_for('photobank.delete_photo', mid=mat.id) }}{% endif %}" onsubmit="return confirm('Удалить материал?')">
+        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Удалить</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-person-badge"></i> Артисты на этом материале</span>
+    {% if current_user.can_edit() %}
+    <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addArtistLink">
+      <i class="bi bi-plus"></i> Привязать артиста
+    </button>
+    {% endif %}
+  </div>
+  {% if current_user.can_edit() %}
+  <div class="collapse" id="addArtistLink">
+    <div class="card-body bg-light border-bottom">
+      <form method="POST" action="{{ url_for('material_detail.add_artist_link', mid=mat.id) }}" class="row g-2 align-items-start">
+        <div class="col-md-8">
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+            <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск артиста..." autocomplete="off">
+            <input type="hidden" name="artist_id" class="ss-value">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Привязать</button></div>
+        <div class="col-12">
+          <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addArtistLink">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  <div class="list-group list-group-flush">
+    {% for link in mat.artist_links %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <a href="{{ url_for('artists.detail', aid=link.artist.id) }}" class="text-decoration-none">
+        {{ link.artist.full_name }}
+        {% if link.artist.title %}<small class="text-muted">({{ link.artist.title }})</small>{% endif %}
+      </a>
+      {% if current_user.can_edit() %}
+      <form method="POST" action="{{ url_for('material_detail.remove_artist_link', mid=mat.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="list-group-item text-center text-muted py-3">Артисты не привязаны</div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

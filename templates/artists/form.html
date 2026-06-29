@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{% if a %}Редактировать артиста{% else %}Новый артист{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if a %}Редактировать: {{ a.full_name }}{% else %}Новый артист{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-person-badge"></i> Карточка артиста</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">ФИО <span class="text-danger">*</span></label>
+          <input type="text" name="full_name" class="form-control" required value="{{ a.full_name if a else '' }}" placeholder="Иванов Иван Иванович">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Звание</label>
+          <input type="text" name="title" class="form-control" value="{{ a.title if a else '' }}" placeholder="Заслуженный артист России...">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Год рождения</label>
+          <input type="number" name="birth_year" class="form-control" value="{{ a.birth_year if a else '' }}" min="1850" max="2010">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Год смерти</label>
+          <input type="number" name="death_year" class="form-control" value="{{ a.death_year if a else '' }}" min="1850" max="2100">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Начало работы в театре</label>
+          <input type="number" name="work_start_year" class="form-control" value="{{ a.work_start_year if a else '' }}" min="1900">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Конец работы в театре</label>
+          <input type="number" name="work_end_year" class="form-control" value="{{ a.work_end_year if a else '' }}" min="1900">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Биографическая справка</label>
+          <textarea name="description" class="form-control" rows="4" placeholder="Краткое описание для архива...">{{ a.description if a else '' }}</textarea>
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if a %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('artists.detail', aid=a.id) if a else url_for('artists.list_artists') }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

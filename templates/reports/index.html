@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Отчёты — Архив ИМТ{% endblock %}
+{% block page_title %}Отчёты и экспорт{% endblock %}
+{% block content %}
+<p class="text-muted">Сформируйте отчёт по выбранным параметрам и сохраните его в формате Word или Excel.</p>
+
+<div class="row g-3">
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-person-badge"></i> Отчёт по артистам</div>
+      <div class="card-body">
+        <p class="text-muted small">Список участия артистов в постановках за выбранный период.</p>
+        <form method="GET" action="{{ url_for('reports.export_artists') }}" target="_blank">
+          <div class="mb-2">
+            <input name="q" class="form-control form-control-sm" placeholder="ФИО артиста (необязательно)">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год участия с"></div>
+            <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="d-flex gap-2">
+            <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            <button name="format" value="docx" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-word"></i> Word</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-collection"></i> Отчёт по постановкам</div>
+      <div class="card-body">
+        <p class="text-muted small">Список постановок с фильтрацией по статусу, жанру, году и литературной основе.</p>
+        <form method="GET" action="{{ url_for('reports.export_productions') }}" target="_blank">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <select name="status" class="form-select form-select-sm">
+                <option value="">Все статусы</option>
+                <option value="active">В показе</option>
+                <option value="removed">Снята</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <select name="genre" class="form-select form-select-sm">
+                <option value="">Все жанры</option>
+                {% for g in genres %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год премьеры с"></div>
+            <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="mb-3">
+            <input name="basis" class="form-control form-control-sm" placeholder="Литературная основа / автор">
+          </div>
+          <div class="d-flex gap-2">
+            <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            <button name="format" value="docx" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-word"></i> Word</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-file-earmark-text"></i> Полная информация о постановке</div>
+      <div class="card-body">
+        <p class="text-muted small">Все данные по одной постановке: состав, постановочная группа, документы, материалы.</p>
+        <div class="searchable-select position-relative mb-3" data-url="{{ url_for('api_productions') }}">
+          <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск постановки..." autocomplete="off">
+          <input type="hidden" class="ss-value" id="exportProdId">
+          <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="submitProdExport('xlsx')"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+          <button type="button" class="btn btn-imt btn-sm" onclick="submitProdExport('docx')"><i class="bi bi-file-earmark-word"></i> Word</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function submitProdExport(fmt){
+  const pid = document.getElementById('exportProdId').value;
+  if(!pid){ alert('Сначала выберите постановку из списка.'); return; }
+  window.open(`/reports/production/${pid}/export?format=${fmt}`, '_blank');
+}
+</script>
+{% endblock %}

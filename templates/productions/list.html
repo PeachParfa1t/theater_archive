@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Постановки — Архив ИМТ{% endblock %}
+{% block page_title %}Список постановок{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">Найдено: <strong id="visibleCount">{{ productions|length }}</strong></span>
+  {% if current_user.can_edit() %}
+  <a href="{{ url_for('productions.create') }}" class="btn btn-imt btn-sm">
+    <i class="bi bi-plus-lg"></i> Новая постановка
+  </a>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" id="fName" class="form-control form-control-sm" placeholder="Поиск по названию...">
+      </div>
+      <div class="col-md-2">
+        <select id="fStatus" class="form-select form-select-sm">
+          <option value="">Все статусы</option>
+          <option value="active">В показе</option>
+          <option value="removed">Снята</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select id="fGenre" class="form-select form-select-sm">
+          <option value="">Все жанры</option>
+          {% for g in genres %}
+          <option value="{{ g|lower }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="text" id="fYear" class="form-control form-control-sm" placeholder="Год">
+      </div>
+      <div class="col-md-3">
+        <input type="text" id="fBasis" class="form-control form-control-sm" placeholder="Литературная основа / автор">
+      </div>
+      <div class="col-md-1">
+        <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100" title="Сбросить">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" id="prodTable">
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Статус</th>
+          <th>Жанр</th>
+          <th>Премьера</th>
+          <th>Актов</th>
+          <th>Автор музыки</th>
+          <th>Автор либретто</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in productions %}
+        <tr class="prod-row"
+            data-name="{{ p.name|lower }}"
+            data-status="{{ p.status }}"
+            data-genre="{{ p.genre|lower }}"
+            data-year="{{ p.premiere_year }}"
+            data-basis="{{ ((p.literary_basis or '') ~ ' ' ~ (p.literary_basis_author or ''))|lower }}">
+          <td>
+            <a href="{{ url_for('productions.detail', pid=p.id) }}" class="fw-semibold text-decoration-none">
+              {{ p.name }}
+            </a>
+            {% if p.literary_basis %}<div class="text-muted small">{{ p.literary_basis }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge bg-{{ p.status_badge }}">{{ p.status_display }}</span>
+          </td>
+          <td>{{ p.genre }}</td>
+          <td>{{ p.premiere_display }}</td>
+          <td>{{ p.acts_count or '—' }}</td>
+          <td>{{ p.music_authors_display }}</td>
+          <td>{{ p.libretto_authors_display }}</td>
+          <td>
+            <a href="{{ url_for('productions.detail', pid=p.id) }}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if current_user.can_edit() %}
+            <a href="{{ url_for('productions.edit', pid=p.id) }}" class="btn btn-outline-primary btn-sm ms-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="noResults" class="text-center py-5 text-muted" style="display:none">
+      <i class="bi bi-collection" style="font-size:3rem;opacity:.3"></i>
+      <p class="mt-2">Постановки не найдены</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const applyProdFilters = initLiveFilter({
+  itemSelector: '#prodTable tbody tr.prod-row',
+  countId: 'visibleCount',
+  resetBtnId: 'resetFilters',
+  filters: [
+    {inputId: 'fName',   dataKey: 'name',   event: 'input'},
+    {inputId: 'fStatus', dataKey: 'status', event: 'change', mode: 'exact'},
+    {inputId: 'fGenre',  dataKey: 'genre',  event: 'change', mode: 'exact'},
+    {inputId: 'fYear',   dataKey: 'year',   event: 'input',  mode: 'exact'},
+    {inputId: 'fBasis',  dataKey: 'basis',  event: 'input'},
+  ]
+});
+function toggleNoResults(){
+  const count = document.getElementById('visibleCount').textContent;
+  document.getElementById('noResults').style.display = (count === '0') ? '' : 'none';
+}
+['fName','fStatus','fGenre','fYear','fBasis'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(id === 'fStatus' || id === 'fGenre' ? 'change' : 'input', () => setTimeout(toggleNoResults, 0));
+});
+document.getElementById('resetFilters').addEventListener('click', () => setTimeout(toggleNoResults, 0));
+toggleNoResults();
+</script>
+{% endblock %}

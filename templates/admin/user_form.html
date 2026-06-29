@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{% if u %}Редактировать пользователя{% else %}Новый пользователь{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if u %}Редактировать: {{ u.full_name }}{% else %}Новый пользователь{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card">
+  <div class="card-header"><i class="bi bi-person-gear"></i> Данные пользователя</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">ФИО <span class="text-danger">*</span></label>
+          <input type="text" name="full_name" class="form-control" required value="{{ u.full_name if u else '' }}" placeholder="Иванов Иван Иванович">
+        </div>
+        {% if not u %}
+        <div class="col-12">
+          <label class="form-label fw-semibold">Логин <span class="text-danger">*</span></label>
+          <input type="text" name="login" class="form-control" required placeholder="ivanov_i">
+        </div>
+        {% else %}
+        <div class="col-12">
+          <label class="form-label fw-semibold">Логин</label>
+          <input type="text" class="form-control" value="{{ u.login }}" disabled>
+        </div>
+        {% endif %}
+        <div class="col-12">
+          <label class="form-label fw-semibold">Пароль {% if not u %}<span class="text-danger">*</span>{% else %}<small class="text-muted">(оставьте пустым, чтобы не менять)</small>{% endif %}</label>
+          <input type="password" name="password" class="form-control" {% if not u %}required{% endif %} placeholder="Минимум 6 символов">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Роль <span class="text-danger">*</span></label>
+          <select name="role_id" class="form-select" required>
+            {% for r in roles %}
+            <option value="{{ r.id }}" {% if u and u.role_id==r.id %}selected{% endif %}>{{ r.display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if u %}
+        <div class="col-12">
+          <div class="form-check">
+            <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {% if u.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="isActive">Активен</label>
+          </div>
+        </div>
+        {% endif %}
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> {% if u %}Сохранить{% else %}Создать{% endif %}</button>
+          <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

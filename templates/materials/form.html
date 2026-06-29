@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Добавить материал — {{ p.name }}{% endblock %}
+{% block page_title %}Материал: {{ p.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-images"></i> Добавить медиаматериал</div>
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Тип материала <span class="text-danger">*</span></label>
+          <select name="material_type" class="form-select" required>
+            <option value="">— Выберите тип —</option>
+            <option value="poster">📋 Афиша</option>
+            <option value="sketch">🎨 Эскиз</option>
+            <option value="photo">📷 Фотография</option>
+            <option value="video">🎬 Видео</option>
+            <option value="media_article">📰 Статья СМИ</option>
+            <option value="program">📄 Программка</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Название (необязательно)</label>
+          <input type="text" name="title" class="form-control" placeholder="Описание материала">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Файл</label>
+          <input type="file" name="mat_file" class="form-control">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Или ссылка (URL)</label>
+          <input type="url" name="url" class="form-control" placeholder="https://...">
+          <small class="text-muted">Если не загружается файл, можно указать ссылку</small>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Связать с артистами (необязательно)</label>
+          <input type="text" id="artistFilter" class="form-control form-control-sm mb-2" placeholder="Поиск артиста...">
+          <div class="border rounded p-2" id="artistCheckboxes" style="max-height:200px;overflow-y:auto">
+            {% for a in artists %}
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="artist_ids" value="{{ a.id }}" id="a{{ a.id }}">
+              <label class="form-check-label" for="a{{ a.id }}">{{ a.full_name }}{% if a.title %} <small class="text-muted">({{ a.title }})</small>{% endif %}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Добавить</button>
+          <a href="{{ url_for('productions.detail', pid=p.id) }}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>initCheckboxFilter('artistFilter', 'artistCheckboxes');</script>
+{% endblock %}

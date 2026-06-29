@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}{% if d %}Редактировать{% else %}Новый постановщик{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if d %}Редактировать постановщика{% else %}Новый постановщик{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card">
+  <div class="card-header"><i class="bi bi-person-gear"></i> Данные постановщика</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">ФИО <span class="text-danger">*</span></label>
+          <input type="text" name="full_name" class="form-control" required value="{{ d.full_name if d else '' }}" placeholder="Иванов Иван Иванович">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Должность <span class="text-danger">*</span></label>
+          <select name="position" class="form-select" required>
+            <option value="">— Выберите должность —</option>
+            {% for key, val in positions.items() %}
+            <option value="{{ key }}" {% if d and d.position==key %}selected{% endif %}>{{ val }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Год рождения</label>
+          <input type="number" name="birth_year" class="form-control" value="{{ d.birth_year if d else '' }}" min="1850" max="2010">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Год смерти</label>
+          <input type="number" name="death_year" class="form-control" value="{{ d.death_year if d else '' }}" min="1850" max="2100">
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if d %}Сохранить{% else %}Добавить{% endif %}
+          </button>
+          <a href="{{ url_for('staging.list_directors') }}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

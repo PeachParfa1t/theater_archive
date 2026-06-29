@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Цифровой архив ИМТ{% endblock %}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{
+  --imt-cyan:#00B6D2;
+  --imt-yellow:#D8D125;
+  --imt-purple:#8A4F9F;
+  --imt-dark:#241b2e;
+  --imt-mid:#3a2647;
+  --imt-accent:var(--imt-cyan);
+}
+body{background:#f4f6f9;font-family:'Segoe UI',sans-serif;min-height:100vh;}
+.sidebar{width:240px;min-height:100vh;background:var(--imt-dark);position:fixed;top:0;left:0;z-index:100;padding-top:0;}
+.sidebar-brand{background:var(--imt-mid);padding:1.2rem 1rem;border-bottom:3px solid transparent;border-image:linear-gradient(90deg,var(--imt-cyan),var(--imt-yellow),var(--imt-purple)) 1;}
+.sidebar-brand h5{color:var(--imt-yellow);font-weight:700;margin:0;font-size:.95rem;line-height:1.3;}
+.sidebar-brand small{color:#aaa;font-size:.75rem;}
+.sidebar .nav-link{color:#ccc;padding:.6rem 1rem;border-radius:6px;margin:.1rem .5rem;font-size:.88rem;transition:all .2s;}
+.sidebar .nav-link:hover{background:var(--imt-purple);color:#fff;}
+.sidebar .nav-link.active{background:var(--imt-cyan);color:#fff;}
+.sidebar .nav-link i{width:20px;margin-right:.4rem;}
+.sidebar-section{color:#776c82;font-size:.7rem;text-transform:uppercase;padding:.6rem 1rem .2rem;letter-spacing:.08em;}
+.main-content{margin-left:240px;padding:1.5rem;}
+.topbar{background:#fff;border-bottom:1px solid #e5e5e5;padding:.75rem 1.5rem;margin:-1.5rem -1.5rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
+.topbar h4{margin:0;font-size:1.1rem;font-weight:600;color:#333;}
+.badge-role{font-size:.7rem;padding:.3rem .6rem;background:var(--imt-purple)!important;}
+.card{border:none;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.card-header{background:#fff;border-bottom:1px solid #f0f0f0;font-weight:600;padding:.75rem 1.25rem;}
+.btn-imt{background:var(--imt-cyan);border-color:var(--imt-cyan);color:#fff;}
+.btn-imt:hover{background:#0090a8;border-color:#0090a8;color:#fff;}
+.btn-outline-primary{color:var(--imt-cyan);border-color:var(--imt-cyan);}
+.btn-outline-primary:hover{background:var(--imt-cyan);border-color:var(--imt-cyan);color:#fff;}
+a{color:var(--imt-purple);}
+.status-active{color:#198754;font-weight:600;}
+.status-removed{color:#6c757d;}
+.table th{font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;color:#888;border-top:none;}
+.table td{vertical-align:middle;}
+.search-bar input{border-radius:20px;border:1px solid #ddd;}
+.section-tabs .nav-link{color:#555;border-radius:0;}
+.section-tabs .nav-link.active{color:var(--imt-purple);border-bottom:2px solid var(--imt-purple);background:none;}
+.file-chip{display:inline-flex;align-items:center;gap:.3rem;background:#e6f9fc;border:1px solid #b3ecf3;border-radius:20px;padding:.2rem .7rem;font-size:.82rem;color:#007490;text-decoration:none;}
+.file-chip:hover{background:#cdf1f7;}
+.material-card{border-radius:8px;overflow:hidden;transition:transform .15s;}
+.material-card:hover{transform:translateY(-2px);}
+.badge.bg-warning{background:var(--imt-yellow)!important;color:#3a3500!important;}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.main-content{margin-left:0}}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h5>🎭 Архив ИМТ</h5>
+    <small>им. Н.М. Загурского</small>
+  </div>
+  <nav class="pt-2">
+    <div class="sidebar-section">Репертуар</div>
+    <a href="{{ url_for('productions.list_productions') }}" class="nav-link {% if request.blueprint=='productions' %}active{% endif %}">
+      <i class="bi bi-collection"></i>Постановки
+    </a>
+    <div class="sidebar-section">Люди</div>
+    <a href="{{ url_for('artists.list_artists') }}" class="nav-link {% if request.blueprint=='artists' %}active{% endif %}">
+      <i class="bi bi-person-badge"></i>Артисты
+    </a>
+    <a href="{{ url_for('staging.list_directors') }}" class="nav-link {% if request.blueprint=='staging' %}active{% endif %}">
+      <i class="bi bi-people"></i>Постановщики
+    </a>
+    <div class="sidebar-section">Медиа</div>
+    <a href="{{ url_for('photobank.list_photobank') }}" class="nav-link {% if request.blueprint=='photobank' %}active{% endif %}">
+      <i class="bi bi-camera"></i>Фотобанк
+    </a>
+    <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.blueprint=='reports' %}active{% endif %}">
+      <i class="bi bi-file-earmark-arrow-down"></i>Отчёты
+    </a>
+    {% if current_user.can_manage_users() %}
+    <div class="sidebar-section">Управление</div>
+    <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.blueprint=='admin' %}active{% endif %}">
+      <i class="bi bi-shield-person"></i>Пользователи
+    </a>
+    {% endif %}
+    <div class="sidebar-section mt-3"></div>
+    <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
+      <i class="bi bi-box-arrow-left"></i>Выйти
+    </a>
+  </nav>
+</div>
+{% endif %}
+
+<div class="{% if current_user.is_authenticated %}main-content{% else %}container-fluid{% endif %}">
+  {% if current_user.is_authenticated %}
+  <div class="topbar">
+    <h4>{% block page_title %}{% endblock %}</h4>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-secondary badge-role">{{ current_user.role.display_name }}</span>
+      <span class="text-muted small">{{ current_user.full_name }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show py-2" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

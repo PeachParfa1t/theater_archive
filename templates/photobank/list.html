@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Фотобанк — Архив ИМТ{% endblock %}
+{% block page_title %}Фотобанк{% endblock %}
+{% block content %}
+<p class="text-muted">Материалы, не привязанные к конкретной постановке (например, общие фото труппы, мероприятия).</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">Найдено: <strong id="visibleCount">{{ materials|length }}</strong></span>
+  {% if current_user.can_edit() %}
+  <a href="{{ url_for('photobank.add_photo') }}" class="btn btn-imt btn-sm">
+    <i class="bi bi-plus-lg"></i> Добавить фото
+  </a>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2">
+      <div class="col-md-8">
+        <input type="text" id="fArtist" class="form-control form-control-sm" placeholder="Поиск по ФИО артиста...">
+      </div>
+      <div class="col-md-2">
+        <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100"><i class="bi bi-x-lg"></i> Сбросить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if materials %}
+<div class="row g-3" id="photoGrid">
+  {% for mat in materials %}
+  {% set artist_names = mat.artist_links|map(attribute='artist')|map(attribute='full_name')|join(', ') %}
+  <div class="col-md-4 col-lg-3 photo-item" data-artists="{{ artist_names|lower }}">
+    <div class="card material-card h-100">
+      {% if mat.is_image and mat.file_path %}
+      <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:160px;object-fit:cover">
+      {% else %}
+      <div class="d-flex align-items-center justify-content-center" style="height:160px;background:#f0f4ff;font-size:3rem;">
+        {{ mat.type_icon }}
+      </div>
+      {% endif %}
+      <div class="card-body p-2">
+        <small class="text-truncate d-block fw-semibold" title="{{ mat.title }}">{{ mat.title or mat.file_name or 'Файл' }}</small>
+        {% if artist_names %}<small class="text-muted d-block">{{ artist_names }}</small>{% endif %}
+        <div class="mt-2 d-flex gap-1">
+          <a href="{{ url_for('material_detail.detail', mid=mat.id) }}" class="btn btn-outline-secondary btn-sm px-2 py-0" title="Кто на фото">
+            <i class="bi bi-eye"></i>
+          </a>
+          {% if mat.file_path %}
+          <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+            <i class="bi bi-download"></i>
+          </a>
+          {% elif mat.url %}
+          <a href="{{ mat.url }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+            <i class="bi bi-link-45deg"></i>
+          </a>
+          {% endif %}
+          {% if current_user.can_edit() %}
+          <form method="POST" action="{{ url_for('photobank.delete_photo', mid=mat.id) }}" onsubmit="return confirm('Удалить?')">
+            <button class="btn btn-outline-danger btn-sm px-2 py-0"><i class="bi bi-trash"></i></button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+<div id="noResults" class="text-center py-5 text-muted" style="display:{% if not materials %}block{% else %}none{% endif %}">
+  <i class="bi bi-camera" style="font-size:3rem;opacity:.3"></i>
+  <p class="mt-2">Фото не найдены</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+initLiveFilter({
+  itemSelector: '.photo-item',
+  countId: 'visibleCount',
+  resetBtnId: 'resetFilters',
+  filters: [{inputId: 'fArtist', dataKey: 'artists', event: 'input'}]
+});
+function toggleNoResults(){
+  document.getElementById('noResults').style.display = (document.getElementById('visibleCount').textContent === '0') ? '' : 'none';
+}
+document.getElementById('fArtist').addEventListener('input', () => setTimeout(toggleNoResults,0));
+document.getElementById('resetFilters').addEventListener('click', () => setTimeout(toggleNoResults,0));
+</script>
+{% endblock %}

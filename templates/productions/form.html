@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}{% if p %}Редактировать{% else %}Новая постановка{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if p %}Редактировать постановку{% else %}Новая постановка{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-film"></i> {% if p %}{{ p.name }}{% else %}Новая постановка{% endif %}
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Название <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required value="{{ p.name if p else '' }}" placeholder="Например: Евгений Онегин">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Жанр <span class="text-danger">*</span></label>
+          <input type="text" name="genre" class="form-control" required value="{{ p.genre if p else '' }}" placeholder="Опера, балет, мюзикл...">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Статус <span class="text-danger">*</span></label>
+          <select name="status" class="form-select" required>
+            <option value="active" {% if not p or p.status=='active' %}selected{% endif %}>В показе</option>
+            <option value="removed" {% if p and p.status=='removed' %}selected{% endif %}>Снята</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Год премьеры <span class="text-danger">*</span></label>
+          <input type="number" name="premiere_year" class="form-control" required value="{{ p.premiere_year if p else '' }}" min="1900" max="2100" placeholder="2024">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">День премьеры</label>
+          <input type="number" name="premiere_day" class="form-control" value="{{ p.premiere_day if p else '' }}" min="1" max="31" placeholder="1–31">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Месяц премьеры</label>
+          <select name="premiere_month" class="form-select">
+            <option value="">—</option>
+            {% for n, m in [(1,'Январь'),(2,'Февраль'),(3,'Март'),(4,'Апрель'),(5,'Май'),(6,'Июнь'),(7,'Июль'),(8,'Август'),(9,'Сентябрь'),(10,'Октябрь'),(11,'Ноябрь'),(12,'Декабрь')] %}
+            <option value="{{ n }}" {% if p and p.premiere_month==n %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Количество актов</label>
+          <input type="number" name="acts_count" class="form-control" value="{{ p.acts_count if p else '' }}" min="1" max="10" placeholder="2">
+        </div>
+
+        <div class="col-12"><hr class="my-1"></div>
+
+        <div class="col-md-7">
+          <label class="form-label fw-semibold">Литературная основа</label>
+          <input type="text" name="literary_basis" class="form-control" value="{{ p.literary_basis if p else '' }}" placeholder="На основе какого произведения поставлен спектакль">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Автор произведения</label>
+          <input type="text" name="literary_basis_author" class="form-control" value="{{ p.literary_basis_author if p else '' }}" placeholder="Автор литературной основы">
+        </div>
+
+        <div class="col-12"><hr class="my-1"></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Авторы музыки</label>
+          <div id="musicAuthors">
+            {% set music_list = p.music_authors if p else [] %}
+            {% for name in (music_list or ['']) %}
+            <div class="input-group input-group-sm mb-2 author-row">
+              <input type="text" name="music_authors[]" class="form-control" value="{{ name }}" placeholder="Например: П.И. Чайковский">
+              <button type="button" class="btn btn-outline-danger remove-author"><i class="bi bi-x"></i></button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="addMusicAuthor">
+            <i class="bi bi-plus"></i> Добавить автора музыки
+          </button>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Авторы либретто</label>
+          <div id="librettoAuthors">
+            {% set libretto_list = p.libretto_authors if p else [] %}
+            {% for name in (libretto_list or ['']) %}
+            <div class="input-group input-group-sm mb-2 author-row">
+              <input type="text" name="libretto_authors[]" class="form-control" value="{{ name }}" placeholder="Например: М.И. Чайковский">
+              <button type="button" class="btn btn-outline-danger remove-author"><i class="bi bi-x"></i></button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="addLibrettoAuthor">
+            <i class="bi bi-plus"></i> Добавить автора либретто
+          </button>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-3">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if p %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('productions.detail', pid=p.id) if p else url_for('productions.list_productions') }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function makeAuthorAdder(containerId, addBtnId) {
+  const container = document.getElementById(containerId);
+  document.getElementById(addBtnId).addEventListener('click', () => {
+    const row = container.querySelector('.author-row').cloneNode(true);
+    row.querySelector('input').value = '';
+    container.appendChild(row);
+  });
+}
+makeAuthorAdder('musicAuthors', 'addMusicAuthor');
+makeAuthorAdder('librettoAuthors', 'addLibrettoAuthor');
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.remove-author');
+  if (!btn) return;
+  const container = btn.closest('#musicAuthors, #librettoAuthors');
+  if (container.querySelectorAll('.author-row').length > 1) {
+    btn.closest('.author-row').remove();
+  } else {
+    btn.closest('.author-row').querySelector('input').value = '';
+  }
+});
+</script>
+{% endblock %}
