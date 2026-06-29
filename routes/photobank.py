@@ -23,7 +23,7 @@ def add_photo():
         file       = request.files.get('mat_file')
         artist_ids = request.form.getlist('artist_ids')
 
-        fp, fn = save_file(file) if file and file.filename else (None, None)
+        fp, fn = save_file(file, material_type=mat_type, production_id=None) if file and file.filename else (None, None)
         if not fp and not url:
             flash('Загрузите файл или укажите URL.', 'danger')
             return redirect(url_for('photobank.add_photo'))

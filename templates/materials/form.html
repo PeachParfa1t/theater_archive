@@ -46,6 +46,18 @@
             {% endfor %}
           </div>
         </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Связать с постановочной группой (необязательно)</label>
+          <input type="text" id="directorFilter" class="form-control form-control-sm mb-2" placeholder="Поиск постановщика...">
+          <div class="border rounded p-2" id="directorCheckboxes" style="max-height:200px;overflow-y:auto">
+            {% for d in directors %}
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="director_ids" value="{{ d.id }}" id="d{{ d.id }}">
+              <label class="form-check-label" for="d{{ d.id }}">{{ d.full_name }} <small class="text-muted">({{ d.position_display }})</small></label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
         <div class="col-12 d-flex gap-2">
           <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Добавить</button>
           <a href="{{ url_for('productions.detail', pid=p.id) }}" class="btn btn-outline-secondary">Отмена</a>
@@ -58,5 +70,8 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script>initCheckboxFilter('artistFilter', 'artistCheckboxes');</script>
+<script>
+initCheckboxFilter('artistFilter', 'artistCheckboxes');
+initCheckboxFilter('directorFilter', 'directorCheckboxes');
+</script>
 {% endblock %}

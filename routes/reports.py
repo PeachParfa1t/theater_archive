@@ -173,7 +173,7 @@ def _production_docx(p):
         for pd in p.staging_group:
             cells = table.add_row().cells
             cells[0].text = pd.director.full_name
-            cells[1].text = pd.director.position_display
+            cells[1].text = pd.position_display
             cells[2].text = pd.director.life_years or '—'
     else:
         doc.add_paragraph('Нет данных.')
@@ -219,7 +219,7 @@ def _production_xlsx(p):
     ws3 = wb.create_sheet('Постановочная группа')
     ws3.append(['ФИО', 'Должность', 'Годы жизни'])
     for pd in p.staging_group:
-        ws3.append([pd.director.full_name, pd.director.position_display, pd.director.life_years or ''])
+        ws3.append([pd.director.full_name, pd.position_display, pd.director.life_years or ''])
 
     ws4 = wb.create_sheet('Документы')
     ws4.append(['Тип', 'Название', 'Файл'])

@@ -36,7 +36,7 @@
       <thead><tr><th>ФИО</th><th>Должность</th><th>Годы жизни</th><th>Постановки</th><th></th></tr></thead>
       <tbody>
         {% for d in directors %}
-        <tr class="director-row" data-name="{{ d.full_name|lower }}" data-position="{{ d.position }}">
+        <tr class="director-row" data-name="{{ d.full_name|lower }}" data-positions="{{ d.position_codes|join(' ') }}">
           <td class="fw-semibold">{{ d.full_name }}</td>
           <td>{{ d.position_display }}</td>
           <td class="text-muted">{{ d.life_years }}</td>
@@ -69,8 +69,8 @@ initLiveFilter({
   countId: 'visibleCount',
   resetBtnId: 'resetFilters',
   filters: [
-    {inputId: 'fName',     dataKey: 'name',     event: 'input'},
-    {inputId: 'fPosition', dataKey: 'position', event: 'change', mode: 'exact'},
+    {inputId: 'fName',     dataKey: 'name',      event: 'input'},
+    {inputId: 'fPosition', dataKey: 'positions', event: 'change'},
   ]
 });
 function toggleNoResults(){

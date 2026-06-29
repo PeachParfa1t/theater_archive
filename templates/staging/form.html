@@ -14,13 +14,16 @@
           <input type="text" name="full_name" class="form-control" required value="{{ d.full_name if d else '' }}" placeholder="Иванов Иван Иванович">
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold">Должность <span class="text-danger">*</span></label>
-          <select name="position" class="form-select" required>
-            <option value="">— Выберите должность —</option>
+          <label class="form-label fw-semibold">Должности <span class="text-danger">*</span> <small class="text-muted">(можно выбрать несколько)</small></label>
+          <div class="border rounded p-2" id="positionsCheckboxes">
             {% for key, val in positions.items() %}
-            <option value="{{ key }}" {% if d and d.position==key %}selected{% endif %}>{{ val }}</option>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="positions" value="{{ key }}" id="pos_{{ key }}"
+                     {% if key in selected_positions %}checked{% endif %}>
+              <label class="form-check-label" for="pos_{{ key }}">{{ val }}</label>
+            </div>
             {% endfor %}
-          </select>
+          </div>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Год рождения</label>
@@ -42,4 +45,15 @@
 </div>
 </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function(e){
+  var checked = document.querySelectorAll('#positionsCheckboxes input[type="checkbox"]:checked');
+  if (checked.length === 0) {
+    e.preventDefault();
+    alert('Выберите хотя бы одну должность.');
+  }
+});
+</script>
 {% endblock %}

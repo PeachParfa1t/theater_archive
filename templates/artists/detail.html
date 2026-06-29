@@ -53,24 +53,38 @@
 </div>
 
 <!-- Материалы артиста -->
-{% set artist_materials = a.material_links|map(attribute='material')|list %}
-{% if artist_materials %}
+{% if a.material_links %}
 <div class="card">
   <div class="card-header"><i class="bi bi-images"></i> Материалы</div>
   <div class="card-body">
     <div class="d-flex flex-wrap gap-2">
       {% for link in a.material_links %}
       {% set mat = link.material %}
-      <div>
-        {% if mat.file_path %}
-        <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="file-chip" target="_blank">
-          {{ mat.type_icon }} {{ mat.title or mat.file_name }}
-        </a>
-        {% elif mat.url %}
-        <a href="{{ mat.url }}" class="file-chip" target="_blank">
-          {{ mat.type_icon }} {{ mat.title or mat.url }}
-        </a>
+      <div class="card material-card" style="width:140px">
+        {% if mat.is_image and mat.file_path %}
+        <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:90px;object-fit:cover">
+        {% else %}
+        <div class="d-flex align-items-center justify-content-center" style="height:90px;background:#f0f4ff;font-size:2rem;">
+          {{ mat.type_icon }}
+        </div>
         {% endif %}
+        <div class="card-body p-2">
+          <small class="text-truncate d-block" title="{{ mat.title }}">{{ mat.title or mat.file_name or 'Файл' }}</small>
+          <div class="mt-1 d-flex gap-1">
+            <a href="{{ url_for('material_detail.detail', mid=mat.id) }}" class="btn btn-outline-secondary btn-sm px-2 py-0" title="Кто на материале">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if mat.file_path %}
+            <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+              <i class="bi bi-download"></i>
+            </a>
+            {% elif mat.url %}
+            <a href="{{ mat.url }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+              <i class="bi bi-link-45deg"></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>

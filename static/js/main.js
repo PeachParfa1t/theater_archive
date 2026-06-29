@@ -1,9 +1,14 @@
 // ===== Searchable select (autocomplete) widget =====
-// Markup: <div class="searchable-select" data-url="/api/artists">
+// Markup: <div class="searchable-select" data-url="/api/artists" data-on-select="someGlobalFnName">
 //           <input class="form-control ss-input" autocomplete="off">
 //           <input type="hidden" class="ss-value" name="...">
 //           <div class="ss-dropdown list-group position-absolute"></div>
 //         </div>
+// data-on-select (optional) names a global function called with the full selected item
+// object (e.g. {id, label, positions: [...]}) whenever the user picks an option.
+// The hidden .ss-value is optional: omit it for a plain "suggest as you type" text field
+// (e.g. an optional free-text name filter) that doesn't need an exact id and isn't required
+// by guardSearchableSelectForms().
 function initSearchableSelect(root) {
   const input  = root.querySelector('.ss-input');
   const hidden = root.querySelector('.ss-value');
@@ -12,6 +17,29 @@ function initSearchableSelect(root) {
   let items = [];
 
   fetch(url).then(r => r.json()).then(data => { items = data; });
+
+  // Universal clear (×) button — lets the user empty the text + hidden id in one click
+  // instead of selecting all text and deleting it manually.
+  if (getComputedStyle(root).position === 'static') root.style.position = 'relative';
+  input.style.paddingRight = '28px';
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'btn-close ss-clear';
+  clearBtn.setAttribute('aria-label', 'Очистить');
+  clearBtn.style.cssText = 'position:absolute;top:50%;right:8px;transform:translateY(-50%);' +
+                            'font-size:.6rem;display:none;z-index:5;';
+  root.appendChild(clearBtn);
+  function toggleClearBtn() { clearBtn.style.display = input.value ? 'block' : 'none'; }
+  clearBtn.addEventListener('mousedown', e => {
+    e.preventDefault();
+    input.value = '';
+    if (hidden) hidden.value = '';
+    input.classList.remove('is-invalid');
+    list.style.display = 'none';
+    toggleClearBtn();
+    input.focus();
+  });
+  toggleClearBtn();
 
   function render(filterText) {
     const f = filterText.toLowerCase();
@@ -25,16 +53,19 @@ function initSearchableSelect(root) {
       row.textContent = it.label;
       row.addEventListener('mousedown', e => {
         e.preventDefault();
-        input.value = it.label;
-        hidden.value = it.id;
+        input.value = (root.dataset.selectValue === 'name' && it.name) ? it.name : it.label;
+        if (hidden) hidden.value = it.id;
         list.style.display = 'none';
+        toggleClearBtn();
+        const cbName = root.dataset.onSelect;
+        if (cbName && typeof window[cbName] === 'function') window[cbName](it);
       });
       list.appendChild(row);
     });
     list.style.display = 'block';
   }
 
-  input.addEventListener('input', () => { hidden.value = ''; render(input.value); });
+  input.addEventListener('input', () => { if (hidden) hidden.value = ''; toggleClearBtn(); render(input.value); });
   input.addEventListener('focus', () => render(input.value));
   document.addEventListener('click', e => { if (!root.contains(e.target)) list.style.display = 'none'; });
 }
@@ -59,7 +90,8 @@ function guardSearchableSelectForms() {
       let ok = true;
       widgets.forEach(w => {
         const hidden = w.querySelector('.ss-value');
-        const input  = w.querySelector('.ss-input');
+        if (!hidden) return; // no id to require — plain suggest-as-you-type text field
+        const input = w.querySelector('.ss-input');
         if (!hidden.value) { input.classList.add('is-invalid'); ok = false; }
         else input.classList.remove('is-invalid');
       });
@@ -122,9 +154,47 @@ function initCheckboxFilter(filterInputId, containerId) {
   });
 }
 
+// ===== Loading overlay fade-out =====
+// Shown by default (see base.html); hidden with a smooth fade once the page (including
+// images) has fully loaded, revealing the already-rendered content underneath.
+window.addEventListener('load', () => {
+  const overlay = document.getElementById('loadingOverlay');
+  if (!overlay) return;
+  overlay.classList.add('loading-hide');
+  setTimeout(() => { overlay.style.display = 'none'; }, 450);
+});
+
+// ===== Year-input spinner fix =====
+// Native <input type="number"> spinner arrows jump an empty field straight to 0 (or to `min`,
+// once min/max are set) on the very first click. Add class "year-input" to any year field to
+// have that first click/keypress fill in the current year instead.
+function initYearInputFix(input) {
+  let prevEmpty = input.value === '';
+  input.addEventListener('input', () => {
+    if (prevEmpty && (input.value === '0' || input.value === '1' || input.value === input.min)) {
+      input.value = new Date().getFullYear();
+    }
+    prevEmpty = input.value === '';
+  });
+}
+
+// ===== Restore the active Bootstrap tab from the URL hash after a redirect =====
+// Server-side actions (add/delete material, document, libretto file, staging member...)
+// redirect back to productions.detail with a "#tabId" suffix so the user lands back on the
+// tab they were working in, instead of always seeing the first ("Состав") tab.
+function activateTabFromHash() {
+  if (!location.hash) return;
+  const trigger = document.querySelector('[data-bs-toggle="tab"][href="' + location.hash + '"]');
+  if (trigger && window.bootstrap) {
+    new bootstrap.Tab(trigger).show();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initAllSearchableSelects();
   guardSearchableSelectForms();
+  document.querySelectorAll('input.year-input').forEach(initYearInputFix);
+  activateTabFromHash();
   // Re-run guard/init after Bootstrap collapse panels reveal new forms
   document.body.addEventListener('shown.bs.collapse', () => {
     initAllSearchableSelects();

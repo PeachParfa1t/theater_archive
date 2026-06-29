@@ -12,8 +12,9 @@
       <div class="card-body">
         <p class="text-muted small">Список участия артистов в постановках за выбранный период.</p>
         <form method="GET" action="{{ url_for('reports.export_artists') }}" target="_blank">
-          <div class="mb-2">
-            <input name="q" class="form-control form-control-sm" placeholder="ФИО артиста (необязательно)">
+          <div class="mb-2 searchable-select position-relative" data-url="{{ url_for('api_artists') }}" data-select-value="name">
+            <input type="text" name="q" class="form-control form-control-sm ss-input" placeholder="ФИО артиста (необязательно)" autocomplete="off">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
           </div>
           <div class="row g-2 mb-3">
             <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год участия с"></div>

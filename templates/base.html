@@ -49,10 +49,23 @@ a{color:var(--imt-purple);}
 .material-card:hover{transform:translateY(-2px);}
 .badge.bg-warning{background:var(--imt-yellow)!important;color:#3a3500!important;}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main-content{margin-left:0}}
+#loadingOverlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:linear-gradient(135deg,var(--imt-dark) 0%,var(--imt-mid) 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:99999;transition:opacity .4s ease;opacity:1;
+}
+#loadingOverlay.loading-hide{opacity:0;pointer-events:none;}
+#loadingOverlay img{width:140px;height:140px;object-fit:contain;margin-bottom:1.2rem;}
+#loadingOverlay .loading-text{color:#fff;font-size:1.1rem;letter-spacing:.03em;}
 </style>
 {% block extra_head %}{% endblock %}
 </head>
 <body>
+<div id="loadingOverlay">
+  <img src="{{ url_for('static', filename='img/loading.gif') }}" alt="Загрузка">
+  <p class="loading-text">Роюсь в архиве...</p>
+</div>
 {% if current_user.is_authenticated %}
 <div class="sidebar">
   <div class="sidebar-brand">

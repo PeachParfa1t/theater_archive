@@ -94,6 +94,53 @@
     {% endfor %}
   </div>
 </div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people"></i> Постановочная группа на этом материале</span>
+    {% if current_user.can_edit() %}
+    <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addDirectorLink">
+      <i class="bi bi-plus"></i> Привязать постановщика
+    </button>
+    {% endif %}
+  </div>
+  {% if current_user.can_edit() %}
+  <div class="collapse" id="addDirectorLink">
+    <div class="card-body bg-light border-bottom">
+      <form method="POST" action="{{ url_for('material_detail.add_director_link', mid=mat.id) }}" class="row g-2 align-items-start">
+        <div class="col-md-8">
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_directors') }}">
+            <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск постановщика..." autocomplete="off">
+            <input type="hidden" name="director_id" class="ss-value">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Привязать</button></div>
+        <div class="col-12">
+          <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addDirectorLink">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  <div class="list-group list-group-flush">
+    {% for link in mat.director_links %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <span>
+        {{ link.director.full_name }}
+        <small class="text-muted">({{ link.director.position_display }})</small>
+      </span>
+      {% if current_user.can_edit() %}
+      <form method="POST" action="{{ url_for('material_detail.remove_director_link', mid=mat.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="list-group-item text-center text-muted py-3">Постановщики не привязаны</div>
+    {% endfor %}
+  </div>
+</div>
 </div>
 </div>
 {% endblock %}

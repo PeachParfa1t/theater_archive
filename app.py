@@ -5,12 +5,23 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from functools import wraps
+from dotenv import load_dotenv
 import os
 import re
+import secrets
 import uuid
 
+load_dotenv()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'imt-zagursky-archive-2024'
+
+secret_key = os.environ.get('SECRET_KEY')
+if not secret_key:
+    secret_key = secrets.token_hex(32)
+    print('WARNING: SECRET_KEY not set in environment/.env — generated a random key for this run. '
+          'Sessions will be invalidated on restart. Set SECRET_KEY in .env for persistent sessions.')
+app.config['SECRET_KEY'] = secret_key
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///theater_archive.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -228,22 +239,33 @@ class Director(db.Model):
     full_name  = db.Column(db.String(300), nullable=False)
     birth_year = db.Column(db.Integer)
     death_year = db.Column(db.Integer)
-    position   = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     production_links = db.relationship('ProductionDirector', backref='director', lazy=True)
+    positions        = db.relationship('DirectorPosition', backref='director', lazy=True, cascade='all,delete-orphan')
 
     POSITIONS = {
-        'conductor':     'Дирижёр',
-        'director':      'Режиссёр',
-        'chorus_master': 'Хормейстер',
-        'concertmaster': 'Концертмейстер',
-        'ballet_master': 'Балетмейстер',
+        'conductor':         'Дирижёр',
+        'director':          'Режиссёр',
+        'chorus_master':     'Хормейстер',
+        'concertmaster':     'Концертмейстер',
+        'ballet_master':     'Балетмейстер',
+        'set_designer':      'Художник-постановщик',
+        'lighting_designer': 'Художник по свету',
+        'costume_designer':  'Художник по костюмам',
+        'video_designer':    'Видеохудожник',
+        'scenographer':      'Художник-сценограф',
+        'choreographer':     'Хореограф-постановщик',
     }
 
     @property
+    def position_codes(self):
+        return [p.position for p in self.positions]
+
+    @property
     def position_display(self):
-        return self.POSITIONS.get(self.position, self.position)
+        names = [self.POSITIONS.get(p.position, p.position) for p in self.positions]
+        return ', '.join(names) if names else '—'
 
     @property
     def life_years(self):
@@ -253,11 +275,32 @@ class Director(db.Model):
             return f"р. {self.birth_year}"
         return ''
 
+class DirectorPosition(db.Model):
+    __tablename__ = 'director_positions'
+    id          = db.Column(db.Integer, primary_key=True)
+    director_id = db.Column(db.Integer, db.ForeignKey('directors.id'), nullable=False)
+    position    = db.Column(db.String(50), nullable=False)
+
 class ProductionDirector(db.Model):
     __tablename__ = 'production_directors'
     id            = db.Column(db.Integer, primary_key=True)
     production_id = db.Column(db.Integer, db.ForeignKey('productions.id'), nullable=False)
     director_id   = db.Column(db.Integer, db.ForeignKey('directors.id'), nullable=False)
+
+    positions = db.relationship('ProductionDirectorPosition', backref='production_director', lazy=True, cascade='all,delete-orphan')
+
+    @property
+    def position_display(self):
+        """Positions chosen specifically for this production; falls back to showing all of the
+        director's positions if none were picked (covers links created before this feature)."""
+        names = [Director.POSITIONS.get(p.position, p.position) for p in self.positions]
+        return ', '.join(names) if names else self.director.position_display
+
+class ProductionDirectorPosition(db.Model):
+    __tablename__ = 'production_director_positions'
+    id                      = db.Column(db.Integer, primary_key=True)
+    production_director_id = db.Column(db.Integer, db.ForeignKey('production_directors.id'), nullable=False)
+    position                = db.Column(db.String(50), nullable=False)
 
 class Material(db.Model):
     __tablename__ = 'materials'
@@ -270,7 +313,8 @@ class Material(db.Model):
     title         = db.Column(db.String(300))
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
-    artist_links  = db.relationship('MaterialArtist', backref='material', lazy=True, cascade='all,delete-orphan')
+    artist_links   = db.relationship('MaterialArtist', backref='material', lazy=True, cascade='all,delete-orphan')
+    director_links = db.relationship('MaterialDirector', backref='material', lazy=True, cascade='all,delete-orphan')
 
     TYPES = {
         'poster':        'Афиша',
@@ -302,6 +346,14 @@ class MaterialArtist(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
     artist_id  = db.Column(db.Integer, db.ForeignKey('artists.id'), nullable=False)
+
+class MaterialDirector(db.Model):
+    __tablename__ = 'material_directors'
+    id          = db.Column(db.Integer, primary_key=True)
+    material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
+    director_id = db.Column(db.Integer, db.ForeignKey('directors.id'), nullable=False)
+
+    director = db.relationship('Director', lazy=True)
 
 # ===== AUTH =====
 
@@ -336,19 +388,52 @@ def editor_required(f):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def save_file(file):
+# Maps a material_type token to its top-level folder name under uploads/
+MATERIAL_TYPE_FOLDERS = {
+    'photo':         'photos',
+    'video':         'videos',
+    'poster':        'posters',
+    'sketch':        'sketches',
+    'program':       'programs',
+    'media_article': 'media_articles',
+    'document':      'documents',
+    'libretto':      'libretti',
+}
+
+def save_file(file, material_type=None, production_id=None):
     """Save an uploaded file under a random ASCII-safe disk name (avoids Windows/filesystem
     issues with non-Latin characters) while preserving the original (e.g. Cyrillic) filename
-    for display and downloads."""
-    if file and file.filename and allowed_file(file.filename):
-        original = file.filename.strip()
-        # Strip path separators / control characters but keep Unicode letters (Cyrillic etc.) intact
-        original = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', original).strip(' .') or 'file'
-        ext = original.rsplit('.', 1)[-1].lower() if '.' in original else ''
-        unique = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique))
-        return unique, original
-    return None, None
+    for display and downloads.
+
+    Files are organized under uploads/<type-folder>/<production_id>/, e.g. photos/3/<uuid>.jpg.
+    Materials with no production (Фотобанк) go to uploads/photobank/. If material_type is not
+    recognized, the file falls back to the flat uploads/ root (old behavior) for compatibility.
+    Returns (relative_path, original_filename) — relative_path includes the subfolder, e.g.
+    "photos/3/<uuid>.jpg", and is what gets stored in the DB / passed to uploaded_file().
+    """
+    if not (file and file.filename and allowed_file(file.filename)):
+        return None, None
+
+    original = file.filename.strip()
+    # Strip path separators / control characters but keep Unicode letters (Cyrillic etc.) intact
+    original = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', original).strip(' .') or 'file'
+    ext = original.rsplit('.', 1)[-1].lower() if '.' in original else ''
+    unique = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
+
+    folder = MATERIAL_TYPE_FOLDERS.get(material_type)
+    if folder and production_id:
+        subfolder = f'{folder}/{production_id}'
+    elif folder:
+        subfolder = 'photobank'  # material with no production (e.g. Фотобанк uploads)
+    else:
+        subfolder = ''  # unknown/unspecified type — flat uploads/ root, old behavior
+
+    target_dir = os.path.join(app.config['UPLOAD_FOLDER'], subfolder) if subfolder else app.config['UPLOAD_FOLDER']
+    os.makedirs(target_dir, exist_ok=True)
+    file.save(os.path.join(target_dir, unique))
+
+    relative_path = f'{subfolder}/{unique}' if subfolder else unique
+    return relative_path, original
 
 def get_or_create_libretto(production_id):
     lib = Libretto.query.filter_by(production_id=production_id).first()
@@ -360,12 +445,13 @@ def get_or_create_libretto(production_id):
 
 def get_or_create_libretto_role(libretto_id, role_name):
     role_name = role_name.strip()
-    existing = LibrettoRole.query.filter(
-        LibrettoRole.libretto_id == libretto_id,
-        db.func.lower(LibrettoRole.role_name) == role_name.lower()
-    ).first()
-    if existing:
-        return existing
+    target = role_name.lower()
+    # Compare case-insensitively in Python, not via SQL lower(): SQLite's built-in lower()
+    # only folds ASCII a-z and leaves Cyrillic/other non-ASCII text untouched, so a SQL-side
+    # comparison would almost never match Cyrillic role names and silently create duplicates.
+    for existing in LibrettoRole.query.filter_by(libretto_id=libretto_id).all():
+        if existing.role_name.strip().lower() == target:
+            return existing
     lr = LibrettoRole(libretto_id=libretto_id, role_name=role_name)
     db.session.add(lr)
     db.session.flush()
@@ -420,14 +506,18 @@ def index():
 def api_artists():
     from flask import jsonify
     artists = Artist.query.order_by(Artist.full_name).all()
-    return jsonify([{'id': a.id, 'label': a.full_name + (f' — {a.title}' if a.title else '')} for a in artists])
+    return jsonify([{'id': a.id, 'name': a.full_name, 'label': a.full_name + (f' — {a.title}' if a.title else '')} for a in artists])
 
 @app.route('/api/directors')
 @login_required
 def api_directors():
     from flask import jsonify
     directors = Director.query.order_by(Director.full_name).all()
-    return jsonify([{'id': d.id, 'label': f'{d.full_name} — {d.position_display}'} for d in directors])
+    return jsonify([{
+        'id': d.id,
+        'label': f'{d.full_name} — {d.position_display}',
+        'positions': [{'code': p.position, 'label': Director.POSITIONS.get(p.position, p.position)} for p in d.positions],
+    } for d in directors])
 
 @app.route('/api/productions')
 @login_required

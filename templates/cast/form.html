@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Редактировать запись состава — {{ p.name }}{% endblock %}
+{% block page_title %}Состав: {{ p.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-person-lines-fill"></i> Редактировать запись состава</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Артист <span class="text-danger">*</span></label>
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+            <input type="text" class="form-control ss-input" autocomplete="off"
+                   value="{{ entry.artist.full_name }}{% if entry.artist.title %} — {{ entry.artist.title }}{% endif %}">
+            <input type="hidden" name="artist_id" class="ss-value" value="{{ entry.artist_id }}">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Роль <small class="text-muted">(необязательно)</small></label>
+          <input type="text" name="role_name" class="form-control" value="{{ entry.role_name or '' }}" placeholder="Название роли">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Год участия с</label>
+          <input type="number" name="year_from" id="editYearFrom" class="form-control year-input" min="1900" max="2100" value="{{ entry.year_from or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">по</label>
+          <input type="number" name="year_to" id="editYearTo" class="form-control year-input" min="1900" max="2100" value="{{ entry.year_to or '' }}">
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Сохранить</button>
+          <a href="{{ url_for('productions.detail', pid=p.id) }}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function(e){
+  var yf = document.getElementById('editYearFrom').value;
+  var yt = document.getElementById('editYearTo').value;
+  if (yf && yt && parseInt(yf) > parseInt(yt)) {
+    e.preventDefault();
+    alert('Год начала участия не может быть позже года окончания.');
+  }
+});
+</script>
+{% endblock %}

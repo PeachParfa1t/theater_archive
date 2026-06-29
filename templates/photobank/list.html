@@ -7,7 +7,7 @@
   <span class="text-muted small">Найдено: <strong id="visibleCount">{{ materials|length }}</strong></span>
   {% if current_user.can_edit() %}
   <a href="{{ url_for('photobank.add_photo') }}" class="btn btn-imt btn-sm">
-    <i class="bi bi-plus-lg"></i> Добавить фото
+    <i class="bi bi-plus-lg"></i> Добавить материал
   </a>
   {% endif %}
 </div>
