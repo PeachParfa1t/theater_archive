@@ -1,7 +1,8 @@
 from flask import Blueprint, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from functools import wraps
-from app import db, Production, Libretto, LibrettoRole, save_file, get_or_create_libretto, get_or_create_libretto_role
+from app import db, Production, Libretto, LibrettoRole
+from utils import save_file, get_or_create_libretto, get_or_create_libretto_role
 
 libretti_bp = Blueprint('libretti', __name__, url_prefix='/productions')
 

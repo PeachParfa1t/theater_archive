@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db, CastEntry, Artist, Production, editor_required, get_or_create_libretto, get_or_create_libretto_role
+from app import db, CastEntry, Artist, Production, editor_required
+from utils import get_or_create_libretto, get_or_create_libretto_role
 
 cast_bp = Blueprint('cast', __name__, url_prefix='/productions')
 

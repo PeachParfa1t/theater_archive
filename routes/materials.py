@@ -1,6 +1,7 @@
 from flask import Blueprint, redirect, url_for, flash, request, render_template
 from flask_login import login_required, current_user
-from app import db, Material, MaterialArtist, MaterialDirector, Artist, Director, Production, save_file, editor_required
+from app import db, Material, MaterialArtist, MaterialDirector, Artist, Director, Production, editor_required
+from utils import save_file
 
 materials_bp = Blueprint('materials', __name__, url_prefix='/productions')
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, redirect, url_for, flash, request, send_from_directory
 from flask_login import login_required, current_user
-from app import db, Document, Production, save_file, editor_required
+from app import db, Document, Production, editor_required
+from utils import save_file
 import os, flask
 
 documents_bp = Blueprint('documents', __name__, url_prefix='/productions')

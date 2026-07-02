@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db, Material, MaterialArtist, Artist, save_file, editor_required
+from app import db, Material, MaterialArtist, Artist, editor_required
+from utils import save_file
 
 photobank_bp = Blueprint('photobank', __name__, url_prefix='/photobank')
 
