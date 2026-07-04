@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}{{ c.name }}, {{ c.year }} — Архив ИМТ{% endblock %}
+{% block page_title %}{{ c.name }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h3 class="mb-1">{{ c.name }}</h3>
+        <span class="badge bg-light text-secondary border me-2">{{ c.status_name }}</span>
+        <span class="text-muted">{{ c.year }}</span>
+      </div>
+      <div class="d-flex gap-2">
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('competitions.edit', cid=c.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% endif %}
+        <a href="{{ url_for('competitions.list_competitions') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i> К списку
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARTISTS -->
+<div class="card mb-3" id="artists">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-person-badge"></i> Артисты</span>
+    {% if current_user.can_edit() %}
+    <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addArtistForm">
+      <i class="bi bi-plus"></i> Добавить
+    </button>
+    {% endif %}
+  </div>
+  {% if current_user.can_edit() %}
+  <div class="collapse" id="addArtistForm">
+    <div class="card-body bg-light border-bottom">
+      <form method="POST" action="{{ url_for('competitions.add_artist', cid=c.id) }}" enctype="multipart/form-data" class="row g-2 align-items-start">
+        <div class="col-md-5">
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+            <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск артиста..." autocomplete="off">
+            <input type="hidden" name="artist_id" class="ss-value">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <input type="text" name="award_level" class="form-control form-control-sm" list="awardLevelsList" autocomplete="off"
+                 placeholder="Уровень награды: выберите или введите новый">
+          <datalist id="awardLevelsList">
+            {% for al in award_levels %}
+            <option value="{{ al.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">ОК</button></div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">Файл с регалиями (необязательно)</label>
+          <input type="file" name="award_file" class="form-control form-control-sm">
+        </div>
+        <div class="col-12">
+          <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addArtistForm">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  <div class="list-group list-group-flush">
+    {% for link in c.artist_links %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <a href="{{ url_for('artists.detail', aid=link.artist.id) }}" class="text-decoration-none">
+        {{ link.artist.full_name }}
+        {% if link.artist.title %}<small class="text-muted">({{ link.artist.title }})</small>{% endif %}
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">{{ link.award_level_name }}</span>
+        {% if link.file_path %}
+        <a href="{{ url_for('uploaded_file', filename=link.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ link.original_filename }}">
+          <i class="bi bi-download"></i>
+        </a>
+        {% endif %}
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('competitions.edit_artist', cid=c.id, link_id=link.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <form method="POST" action="{{ url_for('competitions.remove_artist', cid=c.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+          <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="list-group-item text-center text-muted py-3">Артисты не привязаны</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- PRODUCTIONS -->
+<div class="card mb-3" id="productions">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-collection"></i> Постановки</span>
+    {% if current_user.can_edit() %}
+    <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addProdForm">
+      <i class="bi bi-plus"></i> Добавить
+    </button>
+    {% endif %}
+  </div>
+  {% if current_user.can_edit() %}
+  <div class="collapse" id="addProdForm">
+    <div class="card-body bg-light border-bottom">
+      <form method="POST" action="{{ url_for('competitions.add_production', cid=c.id) }}" enctype="multipart/form-data" class="row g-2 align-items-start">
+        <div class="col-md-5">
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_productions') }}">
+            <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск постановки..." autocomplete="off">
+            <input type="hidden" name="production_id" class="ss-value">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <input type="text" name="award_level" class="form-control form-control-sm" list="awardLevelsListProd" autocomplete="off"
+                 placeholder="Уровень награды: выберите или введите новый">
+          <datalist id="awardLevelsListProd">
+            {% for al in award_levels %}
+            <option value="{{ al.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Добавить</button></div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">Файл с регалиями (необязательно)</label>
+          <input type="file" name="award_file" class="form-control form-control-sm">
+        </div>
+        <div class="col-12">
+          <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addProdForm">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  <div class="list-group list-group-flush">
+    {% for link in c.production_links %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <a href="{{ url_for('productions.detail', pid=link.production.id) }}" class="text-decoration-none">
+        {{ link.production.name }}
+        <small class="text-muted">({{ link.production.premiere_year }})</small>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">{{ link.award_level_name }}</span>
+        {% if link.file_path %}
+        <a href="{{ url_for('uploaded_file', filename=link.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ link.original_filename }}">
+          <i class="bi bi-download"></i>
+        </a>
+        {% endif %}
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('competitions.edit_production', cid=c.id, link_id=link.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <form method="POST" action="{{ url_for('competitions.remove_production', cid=c.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+          <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="list-group-item text-center text-muted py-3">Постановки не привязаны</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

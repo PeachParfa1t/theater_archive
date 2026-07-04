@@ -58,9 +58,27 @@ def relax_director_position_notnull():
         conn.commit()
 
 
+def add_position_column_to_artists():
+    _add_columns_if_missing([
+        "ALTER TABLE artists ADD COLUMN position VARCHAR(200)",
+    ])
+
+
+def add_extra_columns_to_productions():
+    _add_columns_if_missing([
+        "ALTER TABLE productions ADD COLUMN stage VARCHAR(50)",
+        "ALTER TABLE productions ADD COLUMN removal_year INTEGER",
+        "ALTER TABLE productions ADD COLUMN age_rating VARCHAR(10)",
+        "ALTER TABLE productions ADD COLUMN duration_hours INTEGER",
+        "ALTER TABLE productions ADD COLUMN duration_minutes INTEGER",
+        "ALTER TABLE productions ADD COLUMN has_intermission BOOLEAN DEFAULT 0",
+    ])
+
+
 def create_new_tables():
     """Creates any brand-new tables (e.g. production_authors, director_positions,
-    material_directors) that don't exist yet. Never touches existing tables/data."""
+    material_directors, music_materials) that don't exist yet. Never touches existing
+    tables/data."""
     db.create_all()
 
 
@@ -83,4 +101,54 @@ def migrate_director_positions_data():
                 conn.execute(sa.text(
                     "INSERT INTO director_positions (director_id, position) VALUES (:did, :pos)"
                 ), {'did': director_id, 'pos': position})
+        conn.commit()
+
+
+def add_regalia_file_columns_to_competition_links():
+    """Regalia files (e.g. diplomas, certificates) now attach to the specific competition-artist
+    or competition-production link instead of to the competition as a whole. The old
+    competition_files table is left in place, untouched and simply unused going forward."""
+    _add_columns_if_missing([
+        "ALTER TABLE competition_artists ADD COLUMN file_path VARCHAR(500)",
+        "ALTER TABLE competition_artists ADD COLUMN original_filename VARCHAR(300)",
+        "ALTER TABLE competition_productions ADD COLUMN file_path VARCHAR(500)",
+        "ALTER TABLE competition_productions ADD COLUMN original_filename VARCHAR(300)",
+    ])
+
+
+def add_award_level_to_competition_productions():
+    """Productions linked to a competition can now carry an award level, same as artists."""
+    _add_columns_if_missing([
+        "ALTER TABLE competition_productions ADD COLUMN award_level_id INTEGER",
+    ])
+
+
+def add_status_column_to_festivals():
+    """The festival status now lives on the festival series (it applies to every edition of
+    that festival) instead of on each individual edition."""
+    _add_columns_if_missing([
+        "ALTER TABLE festivals ADD COLUMN status_id INTEGER",
+    ])
+
+
+def migrate_festival_status_to_series():
+    """One-time data migration: copy each festival's status from one of its existing editions
+    (the old, now-unused per-edition status_id column) onto the festival series itself, so
+    data entered before this change isn't lost. The old per-edition column is left in place,
+    untouched and simply unused going forward."""
+    with db.engine.connect() as conn:
+        try:
+            rows = conn.execute(sa.text(
+                "SELECT festival_id, status_id FROM festival_editions WHERE status_id IS NOT NULL"
+            )).fetchall()
+        except Exception:
+            return  # legacy per-edition 'status_id' column doesn't exist — nothing to migrate
+        for festival_id, status_id in rows:
+            current = conn.execute(sa.text(
+                "SELECT status_id FROM festivals WHERE id = :fid"
+            ), {'fid': festival_id}).scalar()
+            if current is None:
+                conn.execute(sa.text(
+                    "UPDATE festivals SET status_id = :sid WHERE id = :fid"
+                ), {'sid': status_id, 'fid': festival_id})
         conn.commit()

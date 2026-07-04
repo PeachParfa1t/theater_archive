@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Изменить артиста — {{ t.city }}, {{ t.year }}{% endblock %}
+{% block page_title %}Гастроли: {{ t.city }}, {{ t.year }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card">
+  <div class="card-header"><i class="bi bi-person-badge"></i> Изменить привязанного артиста</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Артист</label>
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+            <input type="text" class="form-control ss-input" autocomplete="off"
+                   value="{{ link.artist.full_name }}{% if link.artist.title %} — {{ link.artist.title }}{% endif %}">
+            <input type="hidden" name="artist_id" class="ss-value" value="{{ link.artist_id }}">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Сохранить</button>
+          <a href="{{ url_for('tours.detail', tid=t.id) }}#artists" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

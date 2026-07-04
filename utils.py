@@ -21,14 +21,23 @@ MATERIAL_TYPE_FOLDERS = {
     'media_article': 'media_articles',
     'document':      'documents',
     'libretto':      'libretti',
+    'music':         'music',
+    'tour_document': 'tour_documents',
+    'festival_document': 'festival_documents',
+    'competition_file': 'competition_files',
 }
 
-def save_file(file, material_type=None, production_id=None):
+def save_file(file, material_type=None, production_id=None, tour_id=None, edition_id=None, competition_id=None):
     """Save an uploaded file under a random ASCII-safe disk name (avoids Windows/filesystem
     issues with non-Latin characters) while preserving the original (e.g. Cyrillic) filename
     for display and downloads.
 
     Files are organized under uploads/<type-folder>/<production_id>/, e.g. photos/3/<uuid>.jpg.
+    Files attached to a Gastrol (tour) instead of a production pass tour_id and land under
+    uploads/<type-folder>/tour_<tour_id>/, e.g. photos/tour_5/<uuid>.jpg. Files attached to a
+    festival edition pass edition_id and land under uploads/<type-folder>/festival_<edition_id>/.
+    Files attached to a competition pass competition_id and land under
+    uploads/<type-folder>/competition_<competition_id>/.
     Materials with no production (Фотобанк) go to uploads/photobank/. If material_type is not
     recognized, the file falls back to the flat uploads/ root (old behavior) for compatibility.
     Returns (relative_path, original_filename) — relative_path includes the subfolder, e.g.
@@ -46,6 +55,12 @@ def save_file(file, material_type=None, production_id=None):
     folder = MATERIAL_TYPE_FOLDERS.get(material_type)
     if folder and production_id:
         subfolder = f'{folder}/{production_id}'
+    elif folder and tour_id:
+        subfolder = f'{folder}/tour_{tour_id}'
+    elif folder and edition_id:
+        subfolder = f'{folder}/festival_{edition_id}'
+    elif folder and competition_id:
+        subfolder = f'{folder}/competition_{competition_id}'
     elif folder:
         subfolder = 'photobank'  # material with no production (e.g. Фотобанк uploads)
     else:

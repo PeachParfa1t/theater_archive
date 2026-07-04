@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{% if c %}Редактировать конкурс{% else %}Новый конкурс{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if c %}Редактировать конкурс{% else %}Новый конкурс{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-trophy"></i> {% if c %}{{ c.name }}{% else %}Новый конкурс{% endif %}</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Название <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required value="{{ c.name if c else '' }}" placeholder="Например: Золотая маска">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Год участия <span class="text-danger">*</span></label>
+          <input type="number" name="year" class="form-control" required value="{{ c.year if c else '' }}" min="1900" max="2100">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Статус конкурса</label>
+          <input type="text" name="status" class="form-control" list="competitionStatusList" autocomplete="off"
+                 value="{{ c.status.name if c and c.status else '' }}"
+                 placeholder="Выберите из списка или введите новый">
+          <datalist id="competitionStatusList">
+            {% for s in statuses %}
+            <option value="{{ s.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if c %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('competitions.detail', cid=c.id) if c else url_for('competitions.list_competitions') }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

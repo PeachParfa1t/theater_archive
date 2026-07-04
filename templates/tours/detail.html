@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% block title %}{{ t.city }}, {{ t.year }} — Архив ИМТ{% endblock %}
+{% block page_title %}Гастроли: {{ t.city }}, {{ t.year }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h3 class="mb-1">{{ t.city }}, {{ t.year }}</h3>
+        <span class="badge bg-light text-secondary border me-2">{{ t.tour_type_name }}</span>
+        <span class="text-muted">{{ t.tour_number_display }} гастроль в этот город</span>
+      </div>
+      <div class="d-flex gap-2">
+        {% if current_user.can_edit() %}
+        <a href="{{ url_for('tours.edit', tid=t.id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% endif %}
+        <a href="{{ url_for('tours.list_tours') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i> К списку
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs section-tabs mb-3" id="tTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#info">Информация</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#productions">Постановки</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#artists">Артисты</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#materials">Материалы</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#documents">Документы</a></li>
+</ul>
+
+<div class="tab-content">
+
+<!-- INFO -->
+<div class="tab-pane fade show active" id="info">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-info-circle"></i> Информация</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Город</dt><dd class="col-sm-9">{{ t.city }}</dd>
+        <dt class="col-sm-3">Год</dt><dd class="col-sm-9">{{ t.year }}</dd>
+        <dt class="col-sm-3">Какая по счёту</dt><dd class="col-sm-9">{{ t.tour_number_display }}</dd>
+        <dt class="col-sm-3">Тип гастроли</dt><dd class="col-sm-9">{{ t.tour_type_name }}</dd>
+        {% if t.description %}
+        <dt class="col-sm-3">Описание</dt><dd class="col-sm-9">{{ t.description }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTIONS -->
+<div class="tab-pane fade" id="productions">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-collection"></i> Постановки на гастролях</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addProdForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addProdForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('tours.add_production_link', tid=t.id) }}" class="row g-2 align-items-start">
+          <div class="col-md-8">
+            <div class="searchable-select position-relative" data-url="{{ url_for('api_productions') }}">
+              <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск постановки..." autocomplete="off">
+              <input type="hidden" name="production_id" class="ss-value">
+              <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+            </div>
+          </div>
+          <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Добавить</button></div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addProdForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="list-group list-group-flush">
+      {% for link in t.production_links %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('productions.detail', pid=link.production.id) }}" class="text-decoration-none">
+          {{ link.production.name }}
+          <small class="text-muted">({{ link.production.premiere_year }})</small>
+        </a>
+        {% if current_user.can_edit() %}
+        <div class="d-flex gap-1">
+          <a href="{{ url_for('tours.edit_production_link', tid=t.id, link_id=link.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('tours.remove_production_link', tid=t.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="list-group-item text-center text-muted py-3">Постановки не привязаны</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ARTISTS -->
+<div class="tab-pane fade" id="artists">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-badge"></i> Артисты на гастролях</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addArtistForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addArtistForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('tours.add_artist_link', tid=t.id) }}" class="row g-2 align-items-start">
+          <div class="col-md-8">
+            <div class="searchable-select position-relative" data-url="{{ url_for('api_artists') }}">
+              <input type="text" class="form-control form-control-sm ss-input" placeholder="Поиск артиста..." autocomplete="off">
+              <input type="hidden" name="artist_id" class="ss-value">
+              <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+            </div>
+          </div>
+          <div class="col-md-2"><button type="submit" class="btn btn-imt btn-sm w-100">Добавить</button></div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addArtistForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="list-group list-group-flush">
+      {% for link in t.artist_links %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('artists.detail', aid=link.artist.id) }}" class="text-decoration-none">
+          {{ link.artist.full_name }}
+          {% if link.artist.title %}<small class="text-muted">({{ link.artist.title }})</small>{% endif %}
+        </a>
+        {% if current_user.can_edit() %}
+        <div class="d-flex gap-1">
+          <a href="{{ url_for('tours.edit_artist_link', tid=t.id, link_id=link.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('tours.remove_artist_link', tid=t.id, link_id=link.id) }}" onsubmit="return confirm('Убрать привязку?')">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="list-group-item text-center text-muted py-3">Артисты не привязаны</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- MATERIALS -->
+<div class="tab-pane fade" id="materials">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-images"></i> Материалы</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addMatForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addMatForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('tours.add_material', tid=t.id) }}" enctype="multipart/form-data" class="row g-2">
+          <div class="col-md-3">
+            <select name="material_type" class="form-select form-select-sm" required>
+              <option value="">— Тип —</option>
+              <option value="poster">📋 Афиша</option>
+              <option value="sketch">🎨 Эскиз</option>
+              <option value="photo">📷 Фотография</option>
+              <option value="video">🎬 Видео</option>
+              <option value="media_article">📰 Статья СМИ</option>
+              <option value="program">📄 Программка</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="Название (необязательно)">
+          </div>
+          <div class="col-md-3">
+            <input type="file" name="mat_file" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-imt btn-sm w-100">Добавить</button>
+          </div>
+          <div class="col-12">
+            <input type="url" name="url" class="form-control form-control-sm" placeholder="Или ссылка (URL), если без файла">
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addMatForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card-body">
+      {% set type_groups = {} %}
+      {% for mat in t.materials %}
+        {% if mat.material_type not in type_groups %}{% set _ = type_groups.update({mat.material_type: []}) %}{% endif %}
+        {% set _ = type_groups[mat.material_type].append(mat) %}
+      {% endfor %}
+      {% if t.materials %}
+        {% for mtype, mats in type_groups.items() %}
+        <h6 class="text-muted mb-2 mt-3">{{ mats[0].type_icon }} {{ mats[0].type_display }}</h6>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          {% for mat in mats %}
+          <div class="card material-card" style="width:140px">
+            {% if mat.is_image and mat.file_path %}
+            <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:90px;object-fit:cover">
+            {% else %}
+            <div class="d-flex align-items-center justify-content-center" style="height:90px;background:#f0f4ff;font-size:2rem;">
+              {{ mat.type_icon }}
+            </div>
+            {% endif %}
+            <div class="card-body p-2">
+              <small class="text-truncate d-block" title="{{ mat.title }}">{{ mat.title or mat.file_name or 'Файл' }}</small>
+              <div class="mt-1 d-flex gap-1">
+                {% if mat.file_path %}
+                <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+                  <i class="bi bi-download"></i>
+                </a>
+                {% elif mat.url %}
+                <a href="{{ mat.url }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
+                  <i class="bi bi-link-45deg"></i>
+                </a>
+                {% endif %}
+                {% if current_user.can_edit() %}
+                <form method="POST" action="{{ url_for('tours.delete_material', tid=t.id, mid=mat.id) }}" onsubmit="return confirm('Удалить?')">
+                  <button class="btn btn-outline-danger btn-sm px-2 py-0"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="text-center text-muted py-4"><i class="bi bi-images" style="font-size:2rem;opacity:.3"></i><p class="mt-2">Материалы не добавлены</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENTS -->
+<div class="tab-pane fade" id="documents">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-file-earmark-text"></i> Документы</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addDocForm">
+        <i class="bi bi-plus"></i> Прикрепить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addDocForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('tours.add_document', tid=t.id) }}" enctype="multipart/form-data" class="row g-2">
+          <div class="col-md-3">
+            <select name="doc_type" class="form-select form-select-sm" required>
+              <option value="">— Тип —</option>
+              <option value="order">Приказ</option>
+              <option value="certificate">Справка</option>
+              <option value="rao_stats">Статистика (РАО)</option>
+              <option value="award">Награда</option>
+              <option value="other">Прочие документы</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="Название (необязательно)">
+          </div>
+          <div class="col-md-3">
+            <input type="file" name="doc_file" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-imt btn-sm w-100">Прикрепить</button>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addDocForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card-body">
+      {% if t.documents %}
+      {% set doc_groups = {} %}
+      {% for doc in t.documents %}
+        {% if doc.doc_type not in doc_groups %}{% set _ = doc_groups.update({doc.doc_type: []}) %}{% endif %}
+        {% set _ = doc_groups[doc.doc_type].append(doc) %}
+      {% endfor %}
+      {% for dtype, docs in doc_groups.items() %}
+      <h6 class="text-muted mb-2 mt-3">{{ docs[0].doc_type_display }}</h6>
+      {% for doc in docs %}
+      <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
+          <div>
+            <div>{{ doc.title or doc.file_name }}</div>
+            <small class="text-muted">{{ doc.file_name }} &bull; {{ doc.created_at.strftime('%d.%m.%Y') }}</small>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-download"></i> Скачать
+          </a>
+          {% if current_user.can_edit() %}
+          <form method="POST" action="{{ url_for('tours.delete_document', tid=t.id, did=doc.id) }}" onsubmit="return confirm('Удалить документ?')">
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% endfor %}
+      {% else %}
+      <div class="text-center text-muted py-4"><i class="bi bi-file-earmark" style="font-size:2rem;opacity:.3"></i><p class="mt-2">Документы не прикреплены</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+</div><!-- tab-content -->
+{% endblock %}

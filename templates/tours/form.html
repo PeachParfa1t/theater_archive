@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}{% if t %}Редактировать гастроль{% else %}Новая гастроль{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if t %}Редактировать гастроль{% else %}Новая гастроль{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-airplane"></i> {% if t %}{{ t.city }}, {{ t.year }}{% else %}Новая гастроль{% endif %}
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Город <span class="text-danger">*</span></label>
+          <input type="text" name="city" class="form-control" required value="{{ t.city if t else '' }}" placeholder="Например: Иркутск">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Год <span class="text-danger">*</span></label>
+          <input type="number" name="year" class="form-control" required value="{{ t.year if t else '' }}" min="1900" max="2100">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Какая по счёту</label>
+          <input type="number" name="tour_number" class="form-control" value="{{ t.tour_number or '' }}" min="1" placeholder="1">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Тип гастроли</label>
+          <input type="text" name="tour_type" class="form-control" list="tourTypesList" autocomplete="off"
+                 value="{{ t.tour_type.name if t and t.tour_type else '' }}"
+                 placeholder="Выберите из списка или введите новый">
+          <datalist id="tourTypesList">
+            {% for tt in tour_types %}
+            <option value="{{ tt.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Описание</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Краткое описание гастроли...">{{ t.description or '' }}</textarea>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if t %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('tours.detail', tid=t.id) if t else url_for('tours.list_tours') }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

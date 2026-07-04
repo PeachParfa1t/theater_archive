@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Изменить привязку постановки — {{ c.name }}{% endblock %}
+{% block page_title %}{{ c.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-collection"></i> Изменить привязку постановки</div>
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Постановка</label>
+          <div class="searchable-select position-relative" data-url="{{ url_for('api_productions') }}">
+            <input type="text" class="form-control ss-input" autocomplete="off" value="{{ link.production.name }} ({{ link.production.premiere_year }})">
+            <input type="hidden" name="production_id" class="ss-value" value="{{ link.production_id }}">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Уровень награды</label>
+          <input type="text" name="award_level" class="form-control" list="awardLevelsList" autocomplete="off"
+                 value="{{ link.award_level.name if link.award_level else '' }}"
+                 placeholder="Выберите из списка или введите новый">
+          <datalist id="awardLevelsList">
+            {% for al in award_levels %}
+            <option value="{{ al.name }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Файл с регалиями</label>
+          {% if link.file_path %}
+          <div class="mb-2">
+            <a href="{{ url_for('uploaded_file', filename=link.file_path) }}" target="_blank" class="file-chip">
+              <i class="bi bi-file-earmark"></i> {{ link.original_filename }}
+            </a>
+          </div>
+          {% endif %}
+          <input type="file" name="award_file" class="form-control">
+          <small class="text-muted">Загрузите файл, чтобы {% if link.file_path %}заменить текущий{% else %}прикрепить{% endif %}</small>
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Сохранить</button>
+          <a href="{{ url_for('competitions.detail', cid=c.id) }}#productions" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

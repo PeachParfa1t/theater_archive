@@ -7,6 +7,12 @@ from migrations import (
     relax_director_position_notnull,
     create_new_tables,
     migrate_director_positions_data,
+    add_position_column_to_artists,
+    add_extra_columns_to_productions,
+    add_regalia_file_columns_to_competition_links,
+    add_award_level_to_competition_productions,
+    add_status_column_to_festivals,
+    migrate_festival_status_to_series,
 )
 
 def init():
@@ -16,6 +22,12 @@ def init():
         relax_director_position_notnull()
         create_new_tables()
         migrate_director_positions_data()
+        add_regalia_file_columns_to_competition_links()
+        add_award_level_to_competition_productions()
+        add_status_column_to_festivals()
+        migrate_festival_status_to_series()
+        add_position_column_to_artists()
+        add_extra_columns_to_productions()
 
         roles_data = [
             (ROLE_ADMIN,    'Администратор'),

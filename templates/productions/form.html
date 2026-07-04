@@ -50,13 +50,53 @@
 
         <div class="col-12"><hr class="my-1"></div>
 
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Сцена</label>
+          <select name="stage" class="form-select">
+            <option value="">—</option>
+            {% for s in stages %}
+            <option value="{{ s }}" {% if p and p.stage==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Возрастной ценз</label>
+          <select name="age_rating" class="form-select">
+            <option value="">—</option>
+            {% for r in age_ratings %}
+            <option value="{{ r }}" {% if p and p.age_rating==r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Год снятия</label>
+          <input type="number" name="removal_year" class="form-control" value="{{ p.removal_year or '' }}" min="1900" max="2100" placeholder="Например: 2023">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Продолжительность: часов</label>
+          <input type="number" name="duration_hours" class="form-control" value="{{ p.duration_hours or '' }}" min="0" max="10">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">минут</label>
+          <input type="number" name="duration_minutes" class="form-control" value="{{ p.duration_minutes or '' }}" min="0" max="59">
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <div class="form-check">
+            <input type="checkbox" name="has_intermission" class="form-check-input" id="hasIntermission" {% if p and p.has_intermission %}checked{% endif %}>
+            <label class="form-check-label" for="hasIntermission">С антрактом</label>
+          </div>
+        </div>
+
+        <div class="col-12"><hr class="my-1"></div>
+
         <div class="col-md-7">
           <label class="form-label fw-semibold">Литературная основа</label>
-          <input type="text" name="literary_basis" class="form-control" value="{{ p.literary_basis if p else '' }}" placeholder="На основе какого произведения поставлен спектакль">
+          <input type="text" name="literary_basis" class="form-control" value="{{ p.literary_basis or '' }}" placeholder="На основе какого произведения поставлен спектакль">
         </div>
         <div class="col-md-5">
           <label class="form-label fw-semibold">Автор произведения</label>
-          <input type="text" name="literary_basis_author" class="form-control" value="{{ p.literary_basis_author if p else '' }}" placeholder="Автор литературной основы">
+          <input type="text" name="literary_basis_author" class="form-control" value="{{ p.literary_basis_author or '' }}" placeholder="Автор литературной основы">
         </div>
 
         <div class="col-12"><hr class="my-1"></div>

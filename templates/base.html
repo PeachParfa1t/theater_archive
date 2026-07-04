@@ -77,12 +77,21 @@ a{color:var(--imt-purple);}
     <a href="{{ url_for('productions.list_productions') }}" class="nav-link {% if request.blueprint=='productions' %}active{% endif %}">
       <i class="bi bi-collection"></i>Постановки
     </a>
+    <a href="{{ url_for('tours.list_tours') }}" class="nav-link {% if request.blueprint=='tours' %}active{% endif %}">
+      <i class="bi bi-airplane"></i>Гастроли
+    </a>
+    <a href="{{ url_for('festivals.list_festivals') }}" class="nav-link {% if request.blueprint=='festivals' %}active{% endif %}">
+      <i class="bi bi-stars"></i>Фестивали
+    </a>
+    <a href="{{ url_for('competitions.list_competitions') }}" class="nav-link {% if request.blueprint=='competitions' %}active{% endif %}">
+      <i class="bi bi-trophy"></i>Конкурсы
+    </a>
     <div class="sidebar-section">Люди</div>
     <a href="{{ url_for('artists.list_artists') }}" class="nav-link {% if request.blueprint=='artists' %}active{% endif %}">
       <i class="bi bi-person-badge"></i>Артисты
     </a>
     <a href="{{ url_for('staging.list_directors') }}" class="nav-link {% if request.blueprint=='staging' %}active{% endif %}">
-      <i class="bi bi-people"></i>Постановщики
+      <i class="bi bi-people"></i>Постановщики и руководство
     </a>
     <div class="sidebar-section">Медиа</div>
     <a href="{{ url_for('photobank.list_photobank') }}" class="nav-link {% if request.blueprint=='photobank' %}active{% endif %}">

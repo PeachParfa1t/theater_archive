@@ -34,7 +34,12 @@ from models import (
     Role, User, Production, ProductionAuthor, Libretto, LibrettoRole,
     Document, Artist, CastEntry, Director, DirectorPosition,
     ProductionDirector, ProductionDirectorPosition, Material,
-    MaterialArtist, MaterialDirector,
+    MaterialArtist, MaterialDirector, MusicMaterial,
+    TourType, Tour, TourProduction, TourArtist, TourDocument, TourMaterial,
+    Festival, FestivalStatus, FestivalEdition, FestivalProgramEntry,
+    FestivalMaterial, FestivalDocument,
+    CompetitionStatus, AwardLevel, Competition, CompetitionArtist,
+    CompetitionProduction,
 )
 
 # ===== AUTH =====
@@ -83,6 +88,10 @@ from routes.admin       import admin_bp
 from routes.photobank   import photobank_bp
 from routes.material_detail import material_detail_bp
 from routes.reports     import reports_bp
+from routes.music_materials import music_materials_bp
+from routes.tours       import tours_bp
+from routes.festivals   import festivals_bp
+from routes.competitions import competitions_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(productions_bp)
@@ -96,15 +105,23 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(photobank_bp)
 app.register_blueprint(material_detail_bp)
 app.register_blueprint(reports_bp)
+app.register_blueprint(music_materials_bp)
+app.register_blueprint(tours_bp)
+app.register_blueprint(festivals_bp)
+app.register_blueprint(competitions_bp)
 
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):
     download_name = None
-    for Model in (Document, Material, Libretto, LibrettoRole):
+    for Model, name_attr in ((Document, 'file_name'), (Material, 'file_name'), (Libretto, 'file_name'),
+                             (LibrettoRole, 'file_name'), (MusicMaterial, 'original_filename'),
+                             (TourDocument, 'file_name'), (TourMaterial, 'file_name'),
+                             (FestivalDocument, 'file_name'), (FestivalMaterial, 'file_name'),
+                             (CompetitionArtist, 'original_filename'), (CompetitionProduction, 'original_filename')):
         row = Model.query.filter_by(file_path=filename).first()
-        if row and row.file_name:
-            download_name = row.file_name
+        if row and getattr(row, name_attr, None):
+            download_name = getattr(row, name_attr)
             break
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, download_name=download_name)
 
@@ -118,7 +135,11 @@ def index():
 def api_artists():
     from flask import jsonify
     artists = Artist.query.order_by(Artist.full_name).all()
-    return jsonify([{'id': a.id, 'name': a.full_name, 'label': a.full_name + (f' — {a.title}' if a.title else '')} for a in artists])
+    result = []
+    for a in artists:
+        extra = ', '.join(p for p in (a.position, a.title) if p)
+        result.append({'id': a.id, 'name': a.full_name, 'label': a.full_name + (f' — {extra}' if extra else '')})
+    return jsonify(result)
 
 @app.route('/api/directors')
 @login_required

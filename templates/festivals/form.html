@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}{% if f %}Редактировать фестиваль{% else %}Новый фестиваль{% endif %} — Архив ИМТ{% endblock %}
+{% block page_title %}{% if f %}Редактировать фестиваль{% else %}Новый фестиваль{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card">
+  <div class="card-header"><i class="bi bi-stars"></i> {% if f %}{{ f.name }}{% else %}Новый фестиваль{% endif %}</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Название <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required value="{{ f.name if f else '' }}" placeholder="Например: Ангара джаз">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Статус</label>
+          <input type="text" name="status" class="form-control" list="festivalStatusList" autocomplete="off"
+                 value="{{ f.status.name if f and f.status else '' }}"
+                 placeholder="Выберите из списка или введите новый">
+          <datalist id="festivalStatusList">
+            {% for s in statuses %}
+            <option value="{{ s.name }}">
+            {% endfor %}
+          </datalist>
+          <small class="text-muted">Статус относится ко всему фестивалю и распространяется на все его выпуски</small>
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if f %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('festivals.list_editions', fid=f.id) if f else url_for('festivals.list_festivals') }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

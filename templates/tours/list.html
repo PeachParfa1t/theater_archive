@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Гастроли — Архив ИМТ{% endblock %}
+{% block page_title %}Гастроли{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">Найдено: <strong id="visibleCount">{{ tours|length }}</strong></span>
+  {% if current_user.can_edit() %}
+  <a href="{{ url_for('tours.create') }}" class="btn btn-imt btn-sm">
+    <i class="bi bi-plus-lg"></i> Новая гастроль
+  </a>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-12">
+        <input type="text" id="fSearch" class="form-control form-control-sm" placeholder="Поиск по городу, артисту или постановке...">
+      </div>
+    </div>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <select id="fCity" class="form-select form-select-sm">
+          <option value="">Все города</option>
+          {% for c in cities %}
+          <option value="{{ c|lower }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" id="fYear" class="form-control form-control-sm" placeholder="Год">
+      </div>
+      <div class="col-md-4">
+        <select id="fType" class="form-select form-select-sm">
+          <option value="">Все типы</option>
+          {% for tt in tour_types %}
+          <option value="{{ tt.name|lower }}">{{ tt.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="button" id="resetFilters" class="btn btn-outline-secondary btn-sm w-100" title="Сбросить">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" id="tourTable">
+      <thead>
+        <tr>
+          <th>Город</th>
+          <th>Год</th>
+          <th>Какая по счёту</th>
+          <th>Тип гастроли</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tours %}
+        <tr class="tour-row"
+            data-city="{{ t.city|lower }}"
+            data-year="{{ t.year }}"
+            data-type="{{ (t.tour_type.name if t.tour_type else '')|lower }}"
+            data-search="{{ (t.city ~ ' ' ~ (t.artist_links|map(attribute='artist')|map(attribute='full_name')|join(' ')) ~ ' ' ~ (t.production_links|map(attribute='production')|map(attribute='name')|join(' ')))|lower }}">
+          <td>
+            <a href="{{ url_for('tours.detail', tid=t.id) }}" class="fw-semibold text-decoration-none">{{ t.city }}</a>
+          </td>
+          <td>{{ t.year }}</td>
+          <td>{{ t.tour_number_display }}</td>
+          <td>{{ t.tour_type_name }}</td>
+          <td>
+            <a href="{{ url_for('tours.detail', tid=t.id) }}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if current_user.can_edit() %}
+            <a href="{{ url_for('tours.edit', tid=t.id) }}" class="btn btn-outline-primary btn-sm ms-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('tours.delete', tid=t.id) }}" class="d-inline" onsubmit="return confirm('Удалить гастроль?')">
+              <button type="submit" class="btn btn-outline-danger btn-sm ms-1"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="noResults" class="text-center py-5 text-muted" style="display:none">
+      <i class="bi bi-airplane" style="font-size:3rem;opacity:.3"></i>
+      <p class="mt-2">Гастроли не найдены</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+initLiveFilter({
+  itemSelector: '#tourTable tbody tr.tour-row',
+  countId: 'visibleCount',
+  resetBtnId: 'resetFilters',
+  filters: [
+    {inputId: 'fSearch', dataKey: 'search', event: 'input'},
+    {inputId: 'fCity', dataKey: 'city', event: 'change', mode: 'exact'},
+    {inputId: 'fYear', dataKey: 'year', event: 'input',  mode: 'exact'},
+    {inputId: 'fType', dataKey: 'type', event: 'change', mode: 'exact'},
+  ]
+});
+function toggleNoResults(){
+  document.getElementById('noResults').style.display = (document.getElementById('visibleCount').textContent === '0') ? '' : 'none';
+}
+['fSearch','fCity','fYear','fType'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => setTimeout(toggleNoResults, 0));
+});
+document.getElementById('resetFilters').addEventListener('click', () => setTimeout(toggleNoResults, 0));
+toggleNoResults();
+</script>
+{% endblock %}

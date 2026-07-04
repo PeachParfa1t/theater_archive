@@ -27,6 +27,18 @@
       {% if p.acts_count %}
       <div class="col-auto"><span class="text-muted">Актов:</span> <strong>{{ p.acts_count }}</strong></div>
       {% endif %}
+      {% if p.stage %}
+      <div class="col-auto"><span class="text-muted">Сцена:</span> <strong>{{ p.stage }}</strong></div>
+      {% endif %}
+      {% if p.age_rating %}
+      <div class="col-auto"><span class="badge bg-secondary">{{ p.age_rating }}</span></div>
+      {% endif %}
+      {% if p.duration_hours or p.duration_minutes %}
+      <div class="col-auto"><span class="text-muted">Продолжительность:</span> <strong>{{ p.duration_display }}</strong></div>
+      {% endif %}
+      {% if p.removal_year %}
+      <div class="col-auto"><span class="text-muted">Год снятия:</span> <strong>{{ p.removal_year }}</strong></div>
+      {% endif %}
       {% if p.music_authors %}
       <div class="col-auto"><span class="text-muted">Музыка:</span> <strong>{{ p.music_authors_display }}</strong></div>
       {% endif %}
@@ -40,6 +52,18 @@
       {% if p.literary_basis_author %}(автор: {{ p.literary_basis_author }}){% endif %}
     </div>
     {% endif %}
+    {% if p.tour_links %}
+    <div class="mt-2 text-muted">
+      <i class="bi bi-airplane"></i> Гастроли:
+      {% for link in p.tour_links %}<a href="{{ url_for('tours.detail', tid=link.tour.id) }}">{{ link.tour.city }} ({{ link.tour.year }})</a>{% if not loop.last %}, {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    {% if p.competition_links %}
+    <div class="mt-2 text-muted">
+      <i class="bi bi-trophy"></i> Конкурсы:
+      {% for link in p.competition_links %}<a href="{{ url_for('competitions.detail', cid=link.competition.id) }}">{{ link.competition.name }} ({{ link.competition.year }})</a>{% if not loop.last %}, {% endif %}{% endfor %}
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -49,6 +73,7 @@
   <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#staging">Постановочная группа</a></li>
   <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#materials">Материалы</a></li>
   <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#documents">Документы</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#music">Музыкальный материал</a></li>
   {% if current_user.can_view_libretto() %}
   <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#libretto">Либретто</a></li>
   {% endif %}
@@ -242,9 +267,10 @@
         {% if mat.material_type not in type_groups %}{% set _ = type_groups.update({mat.material_type: []}) %}{% endif %}
         {% set _ = type_groups[mat.material_type].append(mat) %}
       {% endfor %}
+      {% set type_display_plural = {'poster':'Афиши','sketch':'Эскизы','photo':'Фотографии','video':'Видео','media_article':'Статьи СМИ','program':'Программки'} %}
       {% if p.materials %}
         {% for mtype, mats in type_groups.items() %}
-        <h6 class="text-muted mb-2 mt-3">{{ mats[0].type_icon }} {{ mats[0].type_display }}</h6>
+        <h6 class="text-muted mb-2 mt-3">{{ mats[0].type_icon }} {{ type_display_plural.get(mtype, mats[0].type_display) }}</h6>
         <div class="d-flex flex-wrap gap-2 mb-2">
           {% for mat in mats %}
           <div class="card material-card" style="width:140px">
@@ -308,9 +334,9 @@
             <select name="doc_type" class="form-select form-select-sm" required>
               <option value="">— Тип —</option>
               <option value="order">Приказ</option>
-              <option value="contract">Договор</option>
-              <option value="protocol">Протокол</option>
-              <option value="act">Акт</option>
+              <option value="certificate">Справка</option>
+              <option value="rao_stats">Статистика (РАО)</option>
+              <option value="award">Награда</option>
               <option value="other">Прочие документы</option>
             </select>
           </div>
@@ -364,6 +390,88 @@
       {% else %}
       <div class="text-center text-muted py-4"><i class="bi bi-file-earmark" style="font-size:2rem;opacity:.3"></i><p class="mt-2">Документы не прикреплены</p></div>
       {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- MUSIC MATERIALS -->
+<div class="tab-pane fade" id="music">
+  {% set mm_groups = {} %}
+  {% for mm in p.music_materials %}
+    {% if mm.category not in mm_groups %}{% set _ = mm_groups.update({mm.category: []}) %}{% endif %}
+    {% set _ = mm_groups[mm.category].append(mm) %}
+  {% endfor %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-music-note-list"></i> Музыкальный материал</span>
+      {% if current_user.can_edit() %}
+      <button class="btn btn-imt btn-sm" data-bs-toggle="collapse" data-bs-target="#addMusicForm">
+        <i class="bi bi-plus"></i> Добавить
+      </button>
+      {% endif %}
+    </div>
+    {% if current_user.can_edit() %}
+    <div class="collapse" id="addMusicForm">
+      <div class="card-body bg-light border-bottom">
+        <form method="POST" action="{{ url_for('music_materials.add_music_material', pid=p.id) }}" enctype="multipart/form-data" class="row g-2">
+          <div class="col-md-3">
+            <select name="category" class="form-select form-select-sm" required>
+              <option value="">— Раздел —</option>
+              {% for key, label in music_categories.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" name="description" class="form-control form-control-sm" placeholder="Описание (необязательно)">
+          </div>
+          <div class="col-md-3">
+            <input type="file" name="music_file" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-imt btn-sm w-100">Загрузить</button>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="collapse" data-bs-target="#addMusicForm">Отмена</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card-body">
+      {% for cat_key, cat_label in music_categories.items() %}
+      <h6 class="text-muted mb-2 mt-3">{{ cat_label }}</h6>
+      {% if mm_groups.get(cat_key) %}
+      <div class="list-group mb-2">
+        {% for mm in mm_groups[cat_key] %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ mm.original_filename }}</div>
+              {% if mm.description %}<div class="text-muted small">{{ mm.description }}</div>{% endif %}
+              {% if mm.is_audio %}
+              <audio controls preload="none" class="mt-2" style="max-width:100%;height:36px">
+                <source src="{{ url_for('uploaded_file', filename=mm.file_path) }}">
+              </audio>
+              {% else %}
+              <a href="{{ url_for('uploaded_file', filename=mm.file_path) }}" class="file-chip mt-1" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> Скачать
+              </a>
+              {% endif %}
+            </div>
+            {% if current_user.can_edit() %}
+            <form method="POST" action="{{ url_for('music_materials.delete_music_material', pid=p.id, mmid=mm.id) }}" onsubmit="return confirm('Удалить файл?')">
+              <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-muted small mb-2">Файлы не добавлены.</div>
+      {% endif %}
+      {% endfor %}
     </div>
   </div>
 </div>

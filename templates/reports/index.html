@@ -8,7 +8,7 @@
 
   <div class="col-md-6">
     <div class="card h-100">
-      <div class="card-header"><i class="bi bi-person-badge"></i> Отчёт по артистам</div>
+      <div class="card-header"><i class="bi bi-person-badge"></i> Репертуарный лист артиста</div>
       <div class="card-body">
         <p class="text-muted small">Список участия артистов в постановках за выбранный период.</p>
         <form method="GET" action="{{ url_for('reports.export_artists') }}" target="_blank">
@@ -16,9 +16,19 @@
             <input type="text" name="q" class="form-control form-control-sm ss-input" placeholder="ФИО артиста (необязательно)" autocomplete="off">
             <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
           </div>
-          <div class="row g-2 mb-3">
+          <div class="row g-2 mb-2">
             <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год участия с"></div>
             <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="sections" value="tours" id="secArtistTours">
+              <label class="form-check-label small" for="secArtistTours">Добавить раздел «Гастроли артиста»</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="sections" value="competitions" id="secArtistCompetitions">
+              <label class="form-check-label small" for="secArtistCompetitions">Добавить раздел «Конкурсы артиста»</label>
+            </div>
           </div>
           <div class="d-flex gap-2">
             <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
@@ -54,8 +64,26 @@
             <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год премьеры с"></div>
             <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
           </div>
-          <div class="mb-3">
+          <div class="mb-2">
             <input name="basis" class="form-control form-control-sm" placeholder="Литературная основа / автор">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <select name="stage" class="form-select form-select-sm">
+                <option value="">Все сцены</option>
+                {% for s in stages %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <select name="age_rating" class="form-select form-select-sm">
+                <option value="">Любой ценз</option>
+                {% for r in age_ratings %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><input type="number" name="removal_year_from" class="form-control form-control-sm" placeholder="Год снятия с"></div>
+            <div class="col-6"><input type="number" name="removal_year_to" class="form-control form-control-sm" placeholder="по"></div>
           </div>
           <div class="d-flex gap-2">
             <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
@@ -76,6 +104,30 @@
           <input type="hidden" class="ss-value" id="exportProdId">
           <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
         </div>
+        <div class="mb-3" id="prodExportSections">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="secFull" checked>
+            <label class="form-check-label fw-semibold" for="secFull">Полный отчёт</label>
+          </div>
+          <div class="ms-3">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input sec-child" data-section="cast" id="secCast" checked>
+              <label class="form-check-label" for="secCast">Состав исполнителей</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input sec-child" data-section="staging" id="secStaging" checked>
+              <label class="form-check-label" for="secStaging">Постановочная группа</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input sec-child" data-section="documents" id="secDocuments" checked>
+              <label class="form-check-label" for="secDocuments">Документы</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input sec-child" data-section="materials" id="secMaterials" checked>
+              <label class="form-check-label" for="secMaterials">Материалы</label>
+            </div>
+          </div>
+        </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-outline-secondary btn-sm" onclick="submitProdExport('xlsx')"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
           <button type="button" class="btn btn-imt btn-sm" onclick="submitProdExport('docx')"><i class="bi bi-file-earmark-word"></i> Word</button>
@@ -84,14 +136,141 @@
     </div>
   </div>
 
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-airplane"></i> Отчёт по гастролям</div>
+      <div class="card-body">
+        <p class="text-muted small">Список гастролей с фильтрацией по городу, году, типу, артисту и постановке.</p>
+        <form method="GET" action="{{ url_for('reports.export_tours') }}" target="_blank">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <select name="city" class="form-select form-select-sm">
+                <option value="">Все города</option>
+                {% for c in tour_cities %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <select name="tour_type" class="form-select form-select-sm">
+                <option value="">Все типы</option>
+                {% for tt in tour_types %}<option value="{{ tt.name }}">{{ tt.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год с"></div>
+            <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="mb-2 searchable-select position-relative" data-url="{{ url_for('api_artists') }}" data-select-value="name">
+            <input type="text" name="artist" class="form-control form-control-sm ss-input" placeholder="Артист (необязательно)" autocomplete="off">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+          <div class="mb-3 searchable-select position-relative" data-url="{{ url_for('api_productions') }}" data-select-value="name">
+            <input type="text" name="production" class="form-control form-control-sm ss-input" placeholder="Постановка (необязательно)" autocomplete="off">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+          <div class="d-flex gap-2">
+            <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            <button name="format" value="docx" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-word"></i> Word</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-stars"></i> Отчёт по фестивалям</div>
+      <div class="card-body">
+        <p class="text-muted small">Список выпусков фестивалей с фильтрацией по названию, году и статусу.</p>
+        <form method="GET" action="{{ url_for('reports.export_festivals') }}" target="_blank">
+          <div class="mb-2">
+            <input type="text" name="name" class="form-control form-control-sm" placeholder="Название фестиваля (необязательно)">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год с"></div>
+            <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="mb-3">
+            <select name="status" class="form-select form-select-sm">
+              <option value="">Все статусы</option>
+              {% for s in festival_statuses %}<option value="{{ s.name }}">{{ s.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            <button name="format" value="docx" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-word"></i> Word</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-trophy"></i> Отчёт по конкурсам</div>
+      <div class="card-body">
+        <p class="text-muted small">Список конкурсов с фильтрацией по названию, году, статусу, артисту и уровню награды.</p>
+        <form method="GET" action="{{ url_for('reports.export_competitions') }}" target="_blank">
+          <div class="mb-2">
+            <input type="text" name="name" class="form-control form-control-sm" placeholder="Название конкурса (необязательно)">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input type="number" name="year_from" class="form-control form-control-sm" placeholder="Год с"></div>
+            <div class="col-6"><input type="number" name="year_to" class="form-control form-control-sm" placeholder="по"></div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <select name="status" class="form-select form-select-sm">
+                <option value="">Все статусы</option>
+                {% for s in competition_statuses %}<option value="{{ s.name }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <select name="award_level" class="form-select form-select-sm">
+                <option value="">Любой уровень награды</option>
+                {% for al in award_levels %}<option value="{{ al.name }}">{{ al.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-3 searchable-select position-relative" data-url="{{ url_for('api_artists') }}" data-select-value="name">
+            <input type="text" name="artist" class="form-control form-control-sm ss-input" placeholder="Артист (необязательно)" autocomplete="off">
+            <div class="ss-dropdown list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;display:none;"></div>
+          </div>
+          <div class="d-flex gap-2">
+            <button name="format" value="xlsx" class="btn btn-imt btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+            <button name="format" value="docx" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-word"></i> Word</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
+(function(){
+  const full = document.getElementById('secFull');
+  const children = Array.from(document.querySelectorAll('.sec-child'));
+
+  function syncFullFromChildren(){
+    full.checked = children.every(c => c.checked);
+  }
+  full.addEventListener('change', () => {
+    children.forEach(c => c.checked = full.checked);
+  });
+  children.forEach(c => c.addEventListener('change', syncFullFromChildren));
+})();
+
 function submitProdExport(fmt){
   const pid = document.getElementById('exportProdId').value;
   if(!pid){ alert('Сначала выберите постановку из списка.'); return; }
-  window.open(`/reports/production/${pid}/export?format=${fmt}`, '_blank');
+  const sections = Array.from(document.querySelectorAll('.sec-child'))
+    .filter(c => c.checked)
+    .map(c => c.dataset.section)
+    .join(',');
+  if(!sections){ alert('Выберите хотя бы один раздел.'); return; }
+  window.open(`/reports/production/${pid}/export?format=${fmt}&sections=${sections}`, '_blank');
 }
 </script>
 {% endblock %}

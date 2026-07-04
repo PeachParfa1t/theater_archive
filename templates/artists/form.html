@@ -13,9 +13,18 @@
           <label class="form-label fw-semibold">ФИО <span class="text-danger">*</span></label>
           <input type="text" name="full_name" class="form-control" required value="{{ a.full_name if a else '' }}" placeholder="Иванов Иван Иванович">
         </div>
-        <div class="col-12">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Должность</label>
+          <input type="text" name="position" class="form-control" value="{{ a.position or '' }}" placeholder="Солист балета, Артист хора, Артист оркестра...">
+        </div>
+        <div class="col-md-6">
           <label class="form-label fw-semibold">Звание</label>
-          <input type="text" name="title" class="form-control" value="{{ a.title if a else '' }}" placeholder="Заслуженный артист России...">
+          <select name="title" class="form-select">
+            <option value="">— без звания —</option>
+            {% for r in ranks %}
+            <option value="{{ r }}" {% if a and a.title == r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Год рождения</label>
@@ -35,7 +44,7 @@
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold">Биографическая справка</label>
-          <textarea name="description" class="form-control" rows="4" placeholder="Краткое описание для архива...">{{ a.description if a else '' }}</textarea>
+          <textarea name="description" class="form-control" rows="4" placeholder="Краткое описание для архива...">{{ a.description or '' }}</textarea>
         </div>
         <div class="col-12 d-flex gap-2 mt-2">
           <button type="submit" class="btn btn-imt">

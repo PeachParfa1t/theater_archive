@@ -39,6 +39,7 @@
         <h6 class="mb-1">
           <a href="{{ url_for('artists.detail', aid=a.id) }}" class="text-decoration-none">{{ a.full_name }}</a>
         </h6>
+        {% if a.position %}<div class="text-muted small">{{ a.position }}</div>{% endif %}
         {% if a.title %}<span class="badge bg-light text-secondary border mb-1">{{ a.title }}</span>{% endif %}
         {% if a.life_years %}<div class="text-muted small">{{ a.life_years }}</div>{% endif %}
         {% if a.work_years %}<div class="text-muted small">В театре: {{ a.work_years }}</div>{% endif %}

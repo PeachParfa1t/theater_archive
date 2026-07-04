@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{% if e %}Редактировать выпуск{% else %}Новый выпуск{% endif %} — {{ festival.name }}{% endblock %}
+{% block page_title %}{{ festival.name }}: {% if e %}редактировать выпуск{% else %}новый выпуск{% endif %}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-stars"></i> {{ festival.name }}{% if e %}, {{ e.year }}{% endif %}</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Год проведения <span class="text-danger">*</span></label>
+          <input type="number" name="year" class="form-control" required value="{{ e.year if e else '' }}" min="1900" max="2100">
+        </div>
+        <div class="col-md-8 d-flex align-items-end">
+          <span class="text-muted small">Статус: <span class="badge bg-light text-secondary border">{{ festival.status_name }}</span> <a href="{{ url_for('festivals.edit', fid=festival.id) }}">изменить</a></span>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Описание</label>
+          <textarea name="description" class="form-control" rows="6" placeholder="Описание выпуска фестиваля...">{{ e.description or '' }}</textarea>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt">
+            <i class="bi bi-check-lg"></i> {% if e %}Сохранить{% else %}Создать{% endif %}
+          </button>
+          <a href="{{ url_for('festivals.edition_detail', eid=e.id) if e else url_for('festivals.list_editions', fid=festival.id) }}" class="btn btn-outline-secondary">
+            Отмена
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

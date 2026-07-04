@@ -15,7 +15,7 @@
   <div class="card-body py-2">
     <div class="row g-2 align-items-end">
       <div class="col-md-4">
-        <input type="text" id="fName" class="form-control form-control-sm" placeholder="Поиск по названию...">
+        <input type="text" id="fName" class="form-control form-control-sm" placeholder="Поиск по названию или автору...">
       </div>
       <div class="col-md-2">
         <select id="fStatus" class="form-select form-select-sm">
@@ -44,6 +44,27 @@
         </button>
       </div>
     </div>
+    <div class="row g-2 align-items-end mt-1">
+      <div class="col-md-3">
+        <select id="fStage" class="form-select form-select-sm">
+          <option value="">Все сцены</option>
+          {% for s in stages %}
+          <option value="{{ s|lower }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select id="fAge" class="form-select form-select-sm">
+          <option value="">Любой ценз</option>
+          {% for r in age_ratings %}
+          <option value="{{ r|lower }}">{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="text" id="fRemovalYear" class="form-control form-control-sm" placeholder="Год снятия">
+      </div>
+    </div>
   </div>
 </div>
 
@@ -65,11 +86,14 @@
       <tbody>
         {% for p in productions %}
         <tr class="prod-row"
-            data-name="{{ p.name|lower }}"
+            data-name="{{ (p.name ~ ' ' ~ (p.music_authors|join(' ')) ~ ' ' ~ (p.libretto_authors|join(' ')))|lower }}"
             data-status="{{ p.status }}"
             data-genre="{{ p.genre|lower }}"
             data-year="{{ p.premiere_year }}"
-            data-basis="{{ ((p.literary_basis or '') ~ ' ' ~ (p.literary_basis_author or ''))|lower }}">
+            data-basis="{{ ((p.literary_basis or '') ~ ' ' ~ (p.literary_basis_author or ''))|lower }}"
+            data-stage="{{ (p.stage or '')|lower }}"
+            data-age="{{ (p.age_rating or '')|lower }}"
+            data-removalyear="{{ p.removal_year or '' }}">
           <td>
             <a href="{{ url_for('productions.detail', pid=p.id) }}" class="fw-semibold text-decoration-none">
               {{ p.name }}
@@ -112,20 +136,23 @@ const applyProdFilters = initLiveFilter({
   countId: 'visibleCount',
   resetBtnId: 'resetFilters',
   filters: [
-    {inputId: 'fName',   dataKey: 'name',   event: 'input'},
-    {inputId: 'fStatus', dataKey: 'status', event: 'change', mode: 'exact'},
-    {inputId: 'fGenre',  dataKey: 'genre',  event: 'change', mode: 'exact'},
-    {inputId: 'fYear',   dataKey: 'year',   event: 'input',  mode: 'exact'},
-    {inputId: 'fBasis',  dataKey: 'basis',  event: 'input'},
+    {inputId: 'fName',        dataKey: 'name',        event: 'input'},
+    {inputId: 'fStatus',      dataKey: 'status',      event: 'change', mode: 'exact'},
+    {inputId: 'fGenre',       dataKey: 'genre',       event: 'change', mode: 'exact'},
+    {inputId: 'fYear',        dataKey: 'year',        event: 'input',  mode: 'exact'},
+    {inputId: 'fBasis',       dataKey: 'basis',       event: 'input'},
+    {inputId: 'fStage',       dataKey: 'stage',       event: 'change', mode: 'exact'},
+    {inputId: 'fAge',         dataKey: 'age',         event: 'change', mode: 'exact'},
+    {inputId: 'fRemovalYear', dataKey: 'removalyear', event: 'input',  mode: 'exact'},
   ]
 });
 function toggleNoResults(){
   const count = document.getElementById('visibleCount').textContent;
   document.getElementById('noResults').style.display = (count === '0') ? '' : 'none';
 }
-['fName','fStatus','fGenre','fYear','fBasis'].forEach(id => {
+['fName','fStatus','fGenre','fYear','fBasis','fStage','fAge','fRemovalYear'].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener(id === 'fStatus' || id === 'fGenre' ? 'change' : 'input', () => setTimeout(toggleNoResults, 0));
+  el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => setTimeout(toggleNoResults, 0));
 });
 document.getElementById('resetFilters').addEventListener('click', () => setTimeout(toggleNoResults, 0));
 toggleNoResults();

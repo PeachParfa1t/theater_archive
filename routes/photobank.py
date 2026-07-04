@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db, Material, MaterialArtist, Artist, editor_required
+from app import db, Material, MaterialArtist, MaterialDirector, Artist, Director, editor_required
 from utils import save_file
 
 photobank_bp = Blueprint('photobank', __name__, url_prefix='/photobank')
@@ -21,8 +21,9 @@ def add_photo():
         mat_type   = request.form.get('material_type', 'photo').strip() or 'photo'
         title      = request.form.get('title', '').strip()
         url        = request.form.get('url', '').strip()
-        file       = request.files.get('mat_file')
-        artist_ids = request.form.getlist('artist_ids')
+        file         = request.files.get('mat_file')
+        artist_ids   = request.form.getlist('artist_ids')
+        director_ids = request.form.getlist('director_ids')
 
         fp, fn = save_file(file, material_type=mat_type, production_id=None) if file and file.filename else (None, None)
         if not fp and not url:
@@ -44,12 +45,18 @@ def add_photo():
                 db.session.add(MaterialArtist(material_id=mat.id, artist_id=int(aid)))
             except (ValueError, TypeError):
                 pass
+        for did in director_ids:
+            try:
+                db.session.add(MaterialDirector(material_id=mat.id, director_id=int(did)))
+            except (ValueError, TypeError):
+                pass
         db.session.commit()
         flash('Фото добавлено в фотобанк.', 'success')
         return redirect(url_for('photobank.list_photobank'))
 
     artists = Artist.query.order_by(Artist.full_name).all()
-    return render_template('photobank/form.html', artists=artists)
+    directors = Director.query.order_by(Director.full_name).all()
+    return render_template('photobank/form.html', artists=artists, directors=directors)
 
 @photobank_bp.route('/<int:mid>/delete', methods=['POST'])
 @editor_required

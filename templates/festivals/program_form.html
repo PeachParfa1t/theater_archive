@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Редактировать программу — {{ e.festival.name }}{% endblock %}
+{% block page_title %}Программа: {{ e.festival.name }}, {{ e.year }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+  <div class="card-header"><i class="bi bi-calendar-event"></i> Редактировать запись программы</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">День</label>
+          <input type="number" name="day" class="form-control" value="{{ entry.day or '' }}" min="1" max="31">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Месяц</label>
+          <select name="month" class="form-select">
+            <option value="">—</option>
+            {% for n, m in [(1,'Январь'),(2,'Февраль'),(3,'Март'),(4,'Апрель'),(5,'Май'),(6,'Июнь'),(7,'Июль'),(8,'Август'),(9,'Сентябрь'),(10,'Октябрь'),(11,'Ноябрь'),(12,'Декабрь')] %}
+            <option value="{{ n }}" {% if entry.month==n %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Время</label>
+          <input type="text" name="time" class="form-control" value="{{ entry.time or '' }}" placeholder="19:00">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Место</label>
+          <input type="text" name="location" class="form-control" value="{{ entry.location or '' }}" placeholder="Например: Большой зал театра">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Описание программы дня</label>
+          <textarea name="description" class="form-control" rows="6" placeholder="Что происходит в этот день...">{{ entry.description or '' }}</textarea>
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button type="submit" class="btn btn-imt"><i class="bi bi-check-lg"></i> Сохранить</button>
+          <a href="{{ url_for('festivals.edition_detail', eid=e.id) }}#program" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

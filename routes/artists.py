@@ -17,6 +17,10 @@ def detail(aid):
     a = db.get_or_404(Artist, aid)
     return render_template('artists/detail.html', a=a)
 
+def _rank_or_none(value):
+    value = (value or '').strip()
+    return value if value in Artist.RANKS else None
+
 @artists_bp.route('/create', methods=['GET', 'POST'])
 @editor_required
 def create():
@@ -24,10 +28,11 @@ def create():
         name = request.form.get('full_name', '').strip()
         if not name:
             flash('ФИО обязательно.', 'danger')
-            return render_template('artists/form.html', a=None)
+            return render_template('artists/form.html', a=None, ranks=Artist.RANKS)
         a = Artist(
             full_name       = name,
-            title           = request.form.get('title', '').strip() or None,
+            title           = _rank_or_none(request.form.get('title')),
+            position        = request.form.get('position', '').strip() or None,
             birth_year      = request.form.get('birth_year') or None,
             death_year      = request.form.get('death_year') or None,
             description     = request.form.get('description', '').strip() or None,
@@ -38,7 +43,7 @@ def create():
         db.session.commit()
         flash('Карточка артиста создана.', 'success')
         return redirect(url_for('artists.detail', aid=a.id))
-    return render_template('artists/form.html', a=None)
+    return render_template('artists/form.html', a=None, ranks=Artist.RANKS)
 
 @artists_bp.route('/<int:aid>/edit', methods=['GET', 'POST'])
 @editor_required
@@ -48,9 +53,10 @@ def edit(aid):
         name = request.form.get('full_name', '').strip()
         if not name:
             flash('ФИО обязательно.', 'danger')
-            return render_template('artists/form.html', a=a)
+            return render_template('artists/form.html', a=a, ranks=Artist.RANKS)
         a.full_name       = name
-        a.title           = request.form.get('title', '').strip() or None
+        a.title           = _rank_or_none(request.form.get('title'))
+        a.position        = request.form.get('position', '').strip() or None
         a.birth_year      = request.form.get('birth_year') or None
         a.death_year      = request.form.get('death_year') or None
         a.description     = request.form.get('description', '').strip() or None
@@ -59,7 +65,7 @@ def edit(aid):
         db.session.commit()
         flash('Карточка артиста обновлена.', 'success')
         return redirect(url_for('artists.detail', aid=a.id))
-    return render_template('artists/form.html', a=a)
+    return render_template('artists/form.html', a=a, ranks=Artist.RANKS)
 
 @artists_bp.route('/<int:aid>/delete', methods=['POST'])
 @editor_required
