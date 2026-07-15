@@ -60,6 +60,8 @@ def add_role(pid):
         if fp:
             lr.file_path = fp
             lr.file_name = fn
+        else:
+            flash('Ошибка при сохранении файла.', 'danger')
     db.session.commit()
     flash('Роль добавлена.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#libretto')

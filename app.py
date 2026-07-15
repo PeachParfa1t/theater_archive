@@ -110,6 +110,18 @@ app.register_blueprint(tours_bp)
 app.register_blueprint(festivals_bp)
 app.register_blueprint(competitions_bp)
 
+# ===== ERROR HANDLERS =====
+
+@app.errorhandler(413)
+def file_too_large(e):
+    flash('Файл слишком большой. Максимальный размер: 200 МБ.', 'danger')
+    return redirect(request.referrer or url_for('index'))
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    db.session.rollback()
+    return render_template('500.html'), 500
+
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):

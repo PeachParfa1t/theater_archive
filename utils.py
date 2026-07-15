@@ -67,8 +67,12 @@ def save_file(file, material_type=None, production_id=None, tour_id=None, editio
         subfolder = ''  # unknown/unspecified type — flat uploads/ root, old behavior
 
     target_dir = os.path.join(app.config['UPLOAD_FOLDER'], subfolder) if subfolder else app.config['UPLOAD_FOLDER']
-    os.makedirs(target_dir, exist_ok=True)
-    file.save(os.path.join(target_dir, unique))
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        file.save(os.path.join(target_dir, unique))
+    except OSError as e:
+        print(f"ERROR: failed to save uploaded file '{original}' to '{target_dir}': {e}")
+        return None, None
 
     relative_path = f'{subfolder}/{unique}' if subfolder else unique
     return relative_path, original

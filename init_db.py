@@ -7,6 +7,7 @@ from migrations import (
     relax_director_position_notnull,
     create_new_tables,
     migrate_director_positions_data,
+    rename_ballet_master_position_to_choreographer,
     add_position_column_to_artists,
     add_extra_columns_to_productions,
     add_regalia_file_columns_to_competition_links,
@@ -22,6 +23,7 @@ def init():
         relax_director_position_notnull()
         create_new_tables()
         migrate_director_positions_data()
+        rename_ballet_master_position_to_choreographer()
         add_regalia_file_columns_to_competition_links()
         add_award_level_to_competition_productions()
         add_status_column_to_festivals()
@@ -107,7 +109,7 @@ def init():
             seed_directors = [
                 ('Загурский Николай Михайлович', ['director'], 1940, 2010),
                 ('Орлов Виктор Семёнович', ['conductor'], 1955, None),
-                ('Белова Ольга Николаевна', ['ballet_master', 'choreographer'], 1968, None),
+                ('Белова Ольга Николаевна', ['choreographer'], 1968, None),
             ]
             for name, position_codes, birth_year, death_year in seed_directors:
                 d = Director(full_name=name, birth_year=birth_year, death_year=death_year)

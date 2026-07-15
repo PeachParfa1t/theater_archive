@@ -22,6 +22,9 @@ def add_material(pid):
             return redirect(url_for('productions.detail', pid=pid) + '#materials')
 
         fp, fn = save_file(file, material_type=mat_type, production_id=pid) if file and file.filename else (None, None)
+        if file and file.filename and not fp:
+            flash('Ошибка при сохранении файла.', 'danger')
+            return redirect(url_for('productions.detail', pid=pid) + '#materials')
         if not fp and not url:
             flash('Загрузите файл или укажите URL.', 'danger')
             return redirect(url_for('productions.detail', pid=pid) + '#materials')

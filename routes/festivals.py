@@ -221,6 +221,9 @@ def add_material(eid):
         return redirect(url_for('festivals.edition_detail', eid=eid) + '#materials')
 
     fp, fn = save_file(file, material_type=mat_type, edition_id=eid) if file and file.filename else (None, None)
+    if file and file.filename and not fp:
+        flash('Ошибка при сохранении файла.', 'danger')
+        return redirect(url_for('festivals.edition_detail', eid=eid) + '#materials')
     if not fp and not url:
         flash('Загрузите файл или укажите URL.', 'danger')
         return redirect(url_for('festivals.edition_detail', eid=eid) + '#materials')

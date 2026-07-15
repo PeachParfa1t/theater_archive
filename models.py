@@ -247,7 +247,6 @@ class Director(db.Model):
         'director':           'Режиссёр-постановщик',
         'chorus_master':      'Хормейстер',
         'concertmaster':      'Концертмейстер',
-        'ballet_master':      'Хореограф-постановщик',
         'set_designer':       'Художник-постановщик',
         'lighting_designer':  'Художник по свету',
         'costume_designer':   'Художник по костюмам',

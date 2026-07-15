@@ -246,6 +246,9 @@ def add_material(tid):
         return redirect(url_for('tours.detail', tid=tid) + '#materials')
 
     fp, fn = save_file(file, material_type=mat_type, tour_id=tid) if file and file.filename else (None, None)
+    if file and file.filename and not fp:
+        flash('Ошибка при сохранении файла.', 'danger')
+        return redirect(url_for('tours.detail', tid=tid) + '#materials')
     if not fp and not url:
         flash('Загрузите файл или укажите URL.', 'danger')
         return redirect(url_for('tours.detail', tid=tid) + '#materials')

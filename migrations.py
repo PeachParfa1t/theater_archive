@@ -104,6 +104,33 @@ def migrate_director_positions_data():
         conn.commit()
 
 
+def rename_ballet_master_position_to_choreographer():
+    """'ballet_master' and 'choreographer' were duplicate position codes that both displayed as
+    "Хореограф-постановщик" (Director.POSITIONS now only defines 'choreographer'). Any existing
+    director_positions/production_director_positions rows still using the old 'ballet_master'
+    code are renamed to 'choreographer'; where a director/production-director already has a
+    'choreographer' row too, the redundant 'ballet_master' row is dropped instead of renamed to
+    avoid creating a duplicate."""
+    with db.engine.connect() as conn:
+        for table, owner_col in (('director_positions', 'director_id'),
+                                  ('production_director_positions', 'production_director_id')):
+            try:
+                rows = conn.execute(sa.text(
+                    f"SELECT id, {owner_col} FROM {table} WHERE position = 'ballet_master'"
+                )).fetchall()
+            except Exception:
+                continue  # table doesn't exist yet on a fresh DB — nothing to migrate
+            for row_id, owner_id in rows:
+                has_choreographer = conn.execute(sa.text(
+                    f"SELECT COUNT(*) FROM {table} WHERE {owner_col} = :oid AND position = 'choreographer'"
+                ), {'oid': owner_id}).scalar()
+                if has_choreographer:
+                    conn.execute(sa.text(f"DELETE FROM {table} WHERE id = :id"), {'id': row_id})
+                else:
+                    conn.execute(sa.text(f"UPDATE {table} SET position = 'choreographer' WHERE id = :id"), {'id': row_id})
+            conn.commit()
+
+
 def add_regalia_file_columns_to_competition_links():
     """Regalia files (e.g. diplomas, certificates) now attach to the specific competition-artist
     or competition-production link instead of to the competition as a whole. The old

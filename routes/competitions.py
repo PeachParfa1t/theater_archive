@@ -110,6 +110,8 @@ def add_artist(cid):
     award_level_id = _get_or_create_lookup(AwardLevel, request.form.get('award_level'))
     file = request.files.get('award_file')
     fp, fn = save_file(file, material_type='competition_file', competition_id=cid) if file and file.filename else (None, None)
+    if file and file.filename and not fp:
+        flash('Ошибка при сохранении файла.', 'danger')
 
     db.session.add(CompetitionArtist(
         competition_id=cid, artist_id=int(artist_id), award_level_id=award_level_id,
@@ -146,6 +148,8 @@ def edit_artist(cid, link_id):
             if fp:
                 link.file_path = fp
                 link.original_filename = fn
+            else:
+                flash('Ошибка при сохранении файла.', 'danger')
         db.session.commit()
         flash('Привязка обновлена.', 'success')
         return redirect(url_for('competitions.detail', cid=cid) + '#artists')
@@ -178,6 +182,8 @@ def add_production(cid):
     award_level_id = _get_or_create_lookup(AwardLevel, request.form.get('award_level'))
     file = request.files.get('award_file')
     fp, fn = save_file(file, material_type='competition_file', competition_id=cid) if file and file.filename else (None, None)
+    if file and file.filename and not fp:
+        flash('Ошибка при сохранении файла.', 'danger')
 
     db.session.add(CompetitionProduction(
         competition_id=cid, production_id=int(production_id), award_level_id=award_level_id,
@@ -214,6 +220,8 @@ def edit_production(cid, link_id):
             if fp:
                 link.file_path = fp
                 link.original_filename = fn
+            else:
+                flash('Ошибка при сохранении файла.', 'danger')
         db.session.commit()
         flash('Привязка обновлена.', 'success')
         return redirect(url_for('competitions.detail', cid=cid) + '#productions')
