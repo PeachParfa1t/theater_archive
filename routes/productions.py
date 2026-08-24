@@ -22,7 +22,17 @@ def list_productions():
 @login_required
 def detail(pid):
     p = db.get_or_404(Production, pid)
-    return render_template('productions/detail.html', p=p, music_categories=MusicMaterial.CATEGORIES)
+    music_materials = None
+    music_categories = None
+    if current_user.can_manage_music():
+        music_materials = (MusicMaterial.query
+                           .filter_by(production_id=pid)
+                           .order_by(MusicMaterial.upload_date.desc())
+                           .all())
+        music_categories = MusicMaterial.CATEGORIES
+    return render_template('productions/detail.html', p=p,
+                           music_materials=music_materials,
+                           music_categories=music_categories)
 
 @productions_bp.route('/create', methods=['GET', 'POST'])
 @editor_required

@@ -1,12 +1,11 @@
 from flask import Blueprint, redirect, url_for, flash, request
-from flask_login import login_required, current_user
-from app import db, MusicMaterial, Production, editor_required
+from app import db, MusicMaterial, Production, music_required
 from utils import save_file
 
 music_materials_bp = Blueprint('music_materials', __name__, url_prefix='/productions')
 
 @music_materials_bp.route('/<int:pid>/music/add', methods=['POST'])
-@editor_required
+@music_required
 def add_music_material(pid):
     db.get_or_404(Production, pid)
     category    = request.form.get('category', '').strip()
@@ -35,9 +34,9 @@ def add_music_material(pid):
     return redirect(url_for('productions.detail', pid=pid) + '#music')
 
 @music_materials_bp.route('/<int:pid>/music/<int:mmid>/delete', methods=['POST'])
-@editor_required
+@music_required
 def delete_music_material(pid, mmid):
-    mm = db.get_or_404(MusicMaterial, mmid)
+    mm = MusicMaterial.query.filter_by(id=mmid, production_id=pid).first_or_404()
     db.session.delete(mm)
     db.session.commit()
     flash('Файл удалён.', 'success')

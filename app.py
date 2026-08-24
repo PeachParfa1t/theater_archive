@@ -70,6 +70,21 @@ def editor_required(f):
         return f(*args, **kwargs)
     return wrapped
 
+def music_access_denied():
+    """Return a consistent response without exposing music-material data."""
+    flash('Доступ к музыкальным материалам разрешён только администратору и нотному библиотекарю.', 'danger')
+    return redirect(url_for('productions.list_productions'))
+
+def music_required(f):
+    """Allow a view only to roles authorized by User.can_manage_music()."""
+    @wraps(f)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.can_manage_music():
+            return music_access_denied()
+        return f(*args, **kwargs)
+    return wrapped
+
 # ===== HELPERS =====
 
 from utils import allowed_file, save_file, get_or_create_libretto, get_or_create_libretto_role
@@ -125,12 +140,22 @@ def internal_server_error(e):
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):
-    download_name = None
+    # Music files share the generic upload endpoint with the rest of the archive, so this
+    # endpoint must enforce the same role check as the music-material blueprint. The path
+    # prefix also protects orphaned/new files that are not (or are not yet) linked in the DB;
+    # the DB lookup covers legacy music files stored outside uploads/music/.
+    music_material = MusicMaterial.query.filter_by(file_path=filename).first()
+    normalized_path = filename.replace('\\', '/').lstrip('/').lower()
+    if (music_material or normalized_path.startswith('music/')) and not current_user.can_manage_music():
+        return music_access_denied()
+
+    download_name = music_material.original_filename if music_material else None
     for Model, name_attr in ((Document, 'file_name'), (Material, 'file_name'), (Libretto, 'file_name'),
-                             (LibrettoRole, 'file_name'), (MusicMaterial, 'original_filename'),
-                             (TourDocument, 'file_name'), (TourMaterial, 'file_name'),
+                             (LibrettoRole, 'file_name'), (TourDocument, 'file_name'), (TourMaterial, 'file_name'),
                              (FestivalDocument, 'file_name'), (FestivalMaterial, 'file_name'),
                              (CompetitionArtist, 'original_filename'), (CompetitionProduction, 'original_filename')):
+        if download_name:
+            break
         row = Model.query.filter_by(file_path=filename).first()
         if row and getattr(row, name_attr, None):
             download_name = getattr(row, name_attr)
