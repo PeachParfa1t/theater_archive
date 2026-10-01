@@ -102,8 +102,11 @@ a{color:var(--imt-purple);}
     </a>
     {% if current_user.can_manage_users() %}
     <div class="sidebar-section">Управление</div>
-    <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.blueprint=='admin' %}active{% endif %}">
+    <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.blueprint=='admin' and request.endpoint!='admin.audit_log' %}active{% endif %}">
       <i class="bi bi-shield-person"></i>Пользователи
+    </a>
+    <a href="{{ url_for('admin.audit_log') }}" class="nav-link {% if request.endpoint=='admin.audit_log' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i>Журнал действий
     </a>
     {% endif %}
     <div class="sidebar-section mt-3"></div>

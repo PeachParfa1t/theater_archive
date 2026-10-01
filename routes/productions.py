@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db, Production, ProductionAuthor, MusicMaterial, editor_required
+from audit import commit_with_audit
 
 productions_bp = Blueprint('productions', __name__, url_prefix='/productions')
 
@@ -73,7 +74,7 @@ def create():
         db.session.flush()
         _save_authors(p.id, 'music', request.form.getlist('music_authors[]'))
         _save_authors(p.id, 'libretto', request.form.getlist('libretto_authors[]'))
-        db.session.commit()
+        commit_with_audit('create', 'Постановка', p.name, p.id)
         flash('Постановка создана.', 'success')
         return redirect(url_for('productions.detail', pid=p.id))
     return render_template('productions/form.html', p=None, **form_ctx)
@@ -118,7 +119,7 @@ def edit(pid):
         _save_authors(p.id, 'music', request.form.getlist('music_authors[]'))
         _save_authors(p.id, 'libretto', request.form.getlist('libretto_authors[]'))
 
-        db.session.commit()
+        commit_with_audit('update', 'Постановка', p.name, p.id)
         flash('Постановка обновлена.', 'success')
         return redirect(url_for('productions.detail', pid=p.id))
     return render_template('productions/form.html', p=p, **form_ctx)

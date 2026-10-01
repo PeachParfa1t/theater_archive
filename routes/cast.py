@@ -2,13 +2,14 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db, CastEntry, Artist, Production, editor_required
 from utils import get_or_create_libretto, get_or_create_libretto_role
+from audit import commit_with_audit
 
 cast_bp = Blueprint('cast', __name__, url_prefix='/productions')
 
 @cast_bp.route('/<int:pid>/cast/add', methods=['POST'])
 @editor_required
 def add_cast(pid):
-    db.get_or_404(Production, pid)
+    production = db.get_or_404(Production, pid)
     artist_id = request.form.get('artist_id')
     role_name = request.form.get('role_name', '').strip()
     year_from = request.form.get('year_from') or None
@@ -36,7 +37,11 @@ def add_cast(pid):
         lib = get_or_create_libretto(pid)
         get_or_create_libretto_role(lib.id, role_name)
 
-    db.session.commit()
+    db.session.flush()
+    commit_with_audit(
+        'create', 'Состав постановки',
+        f'{production.name}: {entry.artist.full_name} — {entry.role_name or "роль не указана"}', entry.id,
+    )
     flash('Артист добавлен в состав.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#cast')
 
@@ -69,7 +74,10 @@ def edit_cast(pid, cid):
             lib = get_or_create_libretto(pid)
             get_or_create_libretto_role(lib.id, role_name)
 
-        db.session.commit()
+        commit_with_audit(
+            'update', 'Состав постановки',
+            f'{p.name}: {entry.artist.full_name} — {entry.role_name or "роль не указана"}', entry.id,
+        )
         flash('Запись состава обновлена.', 'success')
         return redirect(url_for('productions.detail', pid=pid) + '#cast')
 
@@ -78,8 +86,10 @@ def edit_cast(pid, cid):
 @cast_bp.route('/<int:pid>/cast/<int:cid>/delete', methods=['POST'])
 @editor_required
 def delete_cast(pid, cid):
+    production = db.get_or_404(Production, pid)
     entry = db.get_or_404(CastEntry, cid)
+    label = f'{production.name}: {entry.artist.full_name} — {entry.role_name or "роль не указана"}'
     db.session.delete(entry)
-    db.session.commit()
+    commit_with_audit('delete', 'Состав постановки', label, cid)
     flash('Запись состава удалена.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#cast')

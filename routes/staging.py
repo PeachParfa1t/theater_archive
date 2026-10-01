@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db, Director, DirectorPosition, Production, ProductionDirector, ProductionDirectorPosition, editor_required
+from audit import commit_with_audit
 
 staging_bp = Blueprint('staging', __name__)
 
@@ -29,7 +30,8 @@ def create_director():
         db.session.flush()
         for code in position_codes:
             db.session.add(DirectorPosition(director_id=d.id, position=code))
-        db.session.commit()
+        commit_with_audit('create', 'Постановщик', d.full_name, d.id,
+                          d.position_display)
         flash('Постановщик добавлен.', 'success')
         return redirect(url_for('staging.list_directors'))
     return render_template('staging/form.html', d=None, positions=Director.POSITIONS, selected_positions=set())
@@ -53,7 +55,8 @@ def edit_director(did):
         for code in position_codes:
             db.session.add(DirectorPosition(director_id=d.id, position=code))
 
-        db.session.commit()
+        commit_with_audit('update', 'Постановщик', d.full_name, d.id,
+                          d.position_display)
         flash('Данные обновлены.', 'success')
         return redirect(url_for('staging.list_directors'))
     return render_template('staging/form.html', d=d, positions=Director.POSITIONS,
@@ -63,15 +66,17 @@ def edit_director(did):
 @editor_required
 def delete_director(did):
     d = db.get_or_404(Director, did)
+    label = d.full_name
+    details = d.position_display
     db.session.delete(d)
-    db.session.commit()
+    commit_with_audit('delete', 'Постановщик', label, did, details)
     flash('Постановщик удалён.', 'success')
     return redirect(url_for('staging.list_directors'))
 
 @staging_bp.route('/productions/<int:pid>/staging/add', methods=['POST'])
 @editor_required
 def add_to_production(pid):
-    db.get_or_404(Production, pid)
+    production = db.get_or_404(Production, pid)
     did = request.form.get('director_id')
     if not did:
         flash('Выберите постановщика.', 'danger')
@@ -89,7 +94,10 @@ def add_to_production(pid):
         db.session.flush()
         for code in position_codes:
             db.session.add(ProductionDirectorPosition(production_director_id=pd.id, position=code))
-        db.session.commit()
+        commit_with_audit(
+            'create', 'Постановочная группа',
+            f'{production.name}: {director.full_name}', pd.id, pd.position_display,
+        )
         flash('Постановщик добавлен в постановку.', 'success')
     else:
         flash('Этот постановщик уже в постановочной группе.', 'warning')
@@ -98,8 +106,11 @@ def add_to_production(pid):
 @staging_bp.route('/productions/<int:pid>/staging/<int:pdid>/remove', methods=['POST'])
 @editor_required
 def remove_from_production(pid, pdid):
+    production = db.get_or_404(Production, pid)
     pd = db.get_or_404(ProductionDirector, pdid)
+    label = f'{production.name}: {pd.director.full_name}'
+    details = pd.position_display
     db.session.delete(pd)
-    db.session.commit()
+    commit_with_audit('delete', 'Постановочная группа', label, pdid, details)
     flash('Постановщик удалён из постановки.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#staging')

@@ -5,6 +5,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
 from app import db, Production
+from audit import commit_with_audit
 from . import reports_bp, safe_filename, xlsx_response, docx_table_response, XLSX_MIME, DOCX_MIME
 
 # ---------- Постановки: фильтруемый список ----------
@@ -60,8 +61,14 @@ def export_productions():
 
     title = 'Отчёт по постановкам'
     if fmt == 'docx':
-        return docx_table_response(title, headers, rows, title)
-    return xlsx_response(headers, rows, title)
+        response = docx_table_response(title, headers, rows, title)
+        actual_format = 'DOCX'
+    else:
+        response = xlsx_response(headers, rows, title)
+        actual_format = 'XLSX'
+    commit_with_audit('report', 'Отчёт по постановкам', title,
+                      details=f'Формат: {actual_format}; строк: {len(rows)}')
+    return response
 
 # ---------- Полная информация по одной постановке ----------
 REPORT_SECTIONS = {'cast', 'staging', 'documents', 'materials'}
@@ -210,9 +217,15 @@ def export_production(pid):
         buf = BytesIO()
         wb.save(buf)
         buf.seek(0)
-        return send_file(buf, as_attachment=True, download_name=f'{filename}.xlsx', mimetype=XLSX_MIME)
-    doc = _production_docx(p, sections)
-    buf = BytesIO()
-    doc.save(buf)
-    buf.seek(0)
-    return send_file(buf, as_attachment=True, download_name=f'{filename}.docx', mimetype=DOCX_MIME)
+        response = send_file(buf, as_attachment=True, download_name=f'{filename}.xlsx', mimetype=XLSX_MIME)
+        actual_format = 'XLSX'
+    else:
+        doc = _production_docx(p, sections)
+        buf = BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+        response = send_file(buf, as_attachment=True, download_name=f'{filename}.docx', mimetype=DOCX_MIME)
+        actual_format = 'DOCX'
+    commit_with_audit('report', 'Отчёт по постановке', p.name, p.id,
+                      f'Формат: {actual_format}; разделы: {", ".join(sorted(sections))}')
+    return response

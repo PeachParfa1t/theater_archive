@@ -1,13 +1,14 @@
 from flask import Blueprint, redirect, url_for, flash, request
 from app import db, MusicMaterial, Production, music_required
 from utils import save_file
+from audit import commit_with_audit
 
 music_materials_bp = Blueprint('music_materials', __name__, url_prefix='/productions')
 
 @music_materials_bp.route('/<int:pid>/music/add', methods=['POST'])
 @music_required
 def add_music_material(pid):
-    db.get_or_404(Production, pid)
+    production = db.get_or_404(Production, pid)
     category    = request.form.get('category', '').strip()
     description = request.form.get('description', '').strip()
     file        = request.files.get('music_file')
@@ -29,15 +30,22 @@ def add_music_material(pid):
         description       = description or None,
     )
     db.session.add(mm)
-    db.session.commit()
+    db.session.flush()
+    commit_with_audit(
+        'create', 'Музыкальный материал', f'{production.name}: {mm.original_filename}',
+        mm.id, mm.category_display,
+    )
     flash('Файл добавлен в музыкальный материал.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#music')
 
 @music_materials_bp.route('/<int:pid>/music/<int:mmid>/delete', methods=['POST'])
 @music_required
 def delete_music_material(pid, mmid):
+    production = db.get_or_404(Production, pid)
     mm = MusicMaterial.query.filter_by(id=mmid, production_id=pid).first_or_404()
+    label = f'{production.name}: {mm.original_filename}'
+    details = mm.category_display
     db.session.delete(mm)
-    db.session.commit()
+    commit_with_audit('delete', 'Музыкальный материал', label, mmid, details)
     flash('Файл удалён.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#music')

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db, Artist, editor_required
+from audit import commit_with_audit
 
 artists_bp = Blueprint('artists', __name__, url_prefix='/artists')
 
@@ -40,7 +41,8 @@ def create():
             work_end_year   = request.form.get('work_end_year') or None,
         )
         db.session.add(a)
-        db.session.commit()
+        db.session.flush()
+        commit_with_audit('create', 'Артист', a.full_name, a.id)
         flash('Карточка артиста создана.', 'success')
         return redirect(url_for('artists.detail', aid=a.id))
     return render_template('artists/form.html', a=None, ranks=Artist.RANKS)
@@ -62,7 +64,7 @@ def edit(aid):
         a.description     = request.form.get('description', '').strip() or None
         a.work_start_year = request.form.get('work_start_year') or None
         a.work_end_year   = request.form.get('work_end_year') or None
-        db.session.commit()
+        commit_with_audit('update', 'Артист', a.full_name, a.id)
         flash('Карточка артиста обновлена.', 'success')
         return redirect(url_for('artists.detail', aid=a.id))
     return render_template('artists/form.html', a=a, ranks=Artist.RANKS)
@@ -71,7 +73,8 @@ def edit(aid):
 @editor_required
 def delete(aid):
     a = db.get_or_404(Artist, aid)
+    label = a.full_name
     db.session.delete(a)
-    db.session.commit()
+    commit_with_audit('delete', 'Артист', label, aid)
     flash('Артист удалён.', 'success')
     return redirect(url_for('artists.list_artists'))

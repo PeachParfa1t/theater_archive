@@ -1,6 +1,7 @@
 from flask import request
 from flask_login import login_required
 from app import Competition
+from audit import commit_with_audit
 from . import reports_bp, xlsx_response, docx_table_response
 
 # ---------- Конкурсы: фильтруемый список ----------
@@ -52,5 +53,11 @@ def export_competitions():
 
     title = 'Отчёт по конкурсам'
     if fmt == 'docx':
-        return docx_table_response(title, headers, rows, title)
-    return xlsx_response(headers, rows, title)
+        response = docx_table_response(title, headers, rows, title)
+        actual_format = 'DOCX'
+    else:
+        response = xlsx_response(headers, rows, title)
+        actual_format = 'XLSX'
+    commit_with_audit('report', 'Отчёт по конкурсам', title,
+                      details=f'Формат: {actual_format}; строк: {len(rows)}')
+    return response

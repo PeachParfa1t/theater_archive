@@ -2,6 +2,7 @@ from flask import Blueprint, redirect, url_for, flash, request, send_from_direct
 from flask_login import login_required, current_user
 from app import db, Document, Production, editor_required
 from utils import save_file
+from audit import commit_with_audit
 import os, flask
 
 documents_bp = Blueprint('documents', __name__, url_prefix='/productions')
@@ -9,7 +10,7 @@ documents_bp = Blueprint('documents', __name__, url_prefix='/productions')
 @documents_bp.route('/<int:pid>/documents/add', methods=['POST'])
 @editor_required
 def add_document(pid):
-    db.get_or_404(Production, pid)
+    production = db.get_or_404(Production, pid)
     doc_type = request.form.get('doc_type', '').strip()
     title    = request.form.get('title', '').strip()
     file     = request.files.get('doc_file')
@@ -22,15 +23,22 @@ def add_document(pid):
         return redirect(url_for('productions.detail', pid=pid) + '#documents')
     doc = Document(production_id=pid, doc_type=doc_type, file_path=fp, file_name=fn, title=title or fn)
     db.session.add(doc)
-    db.session.commit()
+    db.session.flush()
+    commit_with_audit(
+        'create', 'Документ постановки', f'{production.name}: {doc.title or doc.file_name}',
+        doc.id, doc.doc_type_display,
+    )
     flash('Документ прикреплён.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#documents')
 
 @documents_bp.route('/<int:pid>/documents/<int:did>/delete', methods=['POST'])
 @editor_required
 def delete_document(pid, did):
+    production = db.get_or_404(Production, pid)
     doc = db.get_or_404(Document, did)
+    label = f'{production.name}: {doc.title or doc.file_name}'
+    details = doc.doc_type_display
     db.session.delete(doc)
-    db.session.commit()
+    commit_with_audit('delete', 'Документ постановки', label, did, details)
     flash('Документ удалён.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#documents')

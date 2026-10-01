@@ -2,6 +2,7 @@ from flask import Blueprint, redirect, url_for, flash, request, render_template
 from flask_login import login_required, current_user
 from app import db, Material, MaterialArtist, MaterialDirector, Artist, Director, Production, editor_required
 from utils import save_file
+from audit import commit_with_audit
 
 materials_bp = Blueprint('materials', __name__, url_prefix='/productions')
 
@@ -49,7 +50,10 @@ def add_material(pid):
                 db.session.add(MaterialDirector(material_id=mat.id, director_id=int(did)))
             except (ValueError, TypeError):
                 pass
-        db.session.commit()
+        commit_with_audit(
+            'create', 'Материал постановки',
+            f'{p.name}: {mat.title or mat.file_name or mat.url}', mat.id, mat.type_display,
+        )
         flash('Материал добавлен.', 'success')
         return redirect(url_for('productions.detail', pid=pid) + '#materials')
 
@@ -60,8 +64,11 @@ def add_material(pid):
 @materials_bp.route('/<int:pid>/materials/<int:mid>/delete', methods=['POST'])
 @editor_required
 def delete_material(pid, mid):
+    production = db.get_or_404(Production, pid)
     mat = db.get_or_404(Material, mid)
+    label = f'{production.name}: {mat.title or mat.file_name or mat.url}'
+    details = mat.type_display
     db.session.delete(mat)
-    db.session.commit()
+    commit_with_audit('delete', 'Материал постановки', label, mid, details)
     flash('Материал удалён.', 'success')
     return redirect(url_for('productions.detail', pid=pid) + '#materials')

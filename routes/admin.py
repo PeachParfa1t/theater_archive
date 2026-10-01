@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db, User, Role, ROLE_ADMIN
+from app import db, User, Role, AuditLog, ROLE_ADMIN
+from audit import commit_with_audit
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -21,6 +22,34 @@ def users():
     all_users = User.query.order_by(User.full_name).all()
     return render_template('admin/users.html', users=all_users)
 
+@admin_bp.route('/audit-log')
+@admin_required
+def audit_log():
+    page = request.args.get('page', 1, type=int)
+    action = request.args.get('action', '').strip()
+    object_type = request.args.get('object_type', '').strip()
+    user_id = request.args.get('user_id', type=int)
+
+    query = AuditLog.query
+    if action:
+        query = query.filter_by(action=action)
+    if object_type:
+        query = query.filter_by(object_type=object_type)
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+
+    pagination = query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).paginate(
+        page=page, per_page=50, error_out=False
+    )
+    users_for_filter = User.query.order_by(User.full_name).all()
+    object_types = [row[0] for row in db.session.query(AuditLog.object_type).distinct().order_by(AuditLog.object_type)]
+    return render_template(
+        'admin/audit_log.html', pagination=pagination,
+        actions=AuditLog.ACTION_LABELS, object_types=object_types,
+        users_for_filter=users_for_filter,
+        selected_action=action, selected_object_type=object_type, selected_user_id=user_id,
+    )
+
 @admin_bp.route('/users/create', methods=['GET', 'POST'])
 @admin_required
 def create_user():
@@ -39,7 +68,8 @@ def create_user():
         u = User(full_name=full_name, login=login_val, role_id=int(role_id))
         u.set_password(password)
         db.session.add(u)
-        db.session.commit()
+        db.session.flush()
+        commit_with_audit('create', 'Пользователь', f'{u.full_name} ({u.login})', u.id)
         flash('Пользователь создан.', 'success')
         return redirect(url_for('admin.users'))
     return render_template('admin/user_form.html', u=None, roles=roles)
@@ -56,7 +86,8 @@ def edit_user(uid):
         new_pass    = request.form.get('password', '').strip()
         if new_pass:
             u.set_password(new_pass)
-        db.session.commit()
+        commit_with_audit('update', 'Пользователь', f'{u.full_name} ({u.login})', u.id,
+                          'Карточка пользователя обновлена')
         flash('Пользователь обновлён.', 'success')
         return redirect(url_for('admin.users'))
     return render_template('admin/user_form.html', u=u, roles=roles)
@@ -69,6 +100,8 @@ def toggle_user(uid):
         flash('Нельзя деактивировать себя.', 'warning')
     else:
         u.is_active = not u.is_active
-        db.session.commit()
+        state = 'активирован' if u.is_active else 'деактивирован'
+        commit_with_audit('update', 'Пользователь', f'{u.full_name} ({u.login})', u.id,
+                          f'Пользователь {state}')
         flash('Статус изменён.', 'success')
     return redirect(url_for('admin.users'))

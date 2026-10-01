@@ -5,6 +5,7 @@ from app import (
     CompetitionProduction, Artist, Production, editor_required,
 )
 from utils import save_file
+from audit import commit_with_audit
 
 competitions_bp = Blueprint('competitions', __name__, url_prefix='/competitions')
 
@@ -50,7 +51,9 @@ def create():
             status_id = _get_or_create_lookup(CompetitionStatus, request.form.get('status')),
         )
         db.session.add(comp)
-        db.session.commit()
+        db.session.flush()
+        commit_with_audit('create', 'Конкурс', f'{comp.name}, {comp.year}', comp.id,
+                          comp.status_name)
         flash('Конкурс создан.', 'success')
         return redirect(url_for('competitions.detail', cid=comp.id))
     return render_template('competitions/form.html', c=None, statuses=statuses)
@@ -70,7 +73,8 @@ def edit(cid):
         comp.name      = name
         comp.year      = int(year)
         comp.status_id = _get_or_create_lookup(CompetitionStatus, request.form.get('status'))
-        db.session.commit()
+        commit_with_audit('update', 'Конкурс', f'{comp.name}, {comp.year}', comp.id,
+                          comp.status_name)
         flash('Конкурс обновлён.', 'success')
         return redirect(url_for('competitions.detail', cid=comp.id))
     return render_template('competitions/form.html', c=comp, statuses=statuses)
@@ -80,8 +84,10 @@ def edit(cid):
 @editor_required
 def delete(cid):
     comp = db.get_or_404(Competition, cid)
+    label = f'{comp.name}, {comp.year}'
+    details = comp.status_name
     db.session.delete(comp)
-    db.session.commit()
+    commit_with_audit('delete', 'Конкурс', label, cid, details)
     flash('Конкурс удалён.', 'success')
     return redirect(url_for('competitions.list_competitions'))
 
@@ -98,7 +104,7 @@ def detail(cid):
 @competitions_bp.route('/<int:cid>/artists/add', methods=['POST'])
 @editor_required
 def add_artist(cid):
-    db.get_or_404(Competition, cid)
+    competition = db.get_or_404(Competition, cid)
     artist_id = request.form.get('artist_id')
     if not artist_id:
         flash('Выберите артиста.', 'danger')
@@ -113,11 +119,16 @@ def add_artist(cid):
     if file and file.filename and not fp:
         flash('Ошибка при сохранении файла.', 'danger')
 
-    db.session.add(CompetitionArtist(
+    artist = db.get_or_404(Artist, int(artist_id))
+    link = CompetitionArtist(
         competition_id=cid, artist_id=int(artist_id), award_level_id=award_level_id,
         file_path=fp, original_filename=fn,
-    ))
-    db.session.commit()
+    )
+    db.session.add(link)
+    db.session.flush()
+    commit_with_audit('create', 'Артист конкурса',
+                      f'{competition.name}, {competition.year}: {artist.full_name}', link.id,
+                      link.award_level_name)
     flash('Артист привязан к конкурсу.', 'success')
     return redirect(url_for('competitions.detail', cid=cid) + '#artists')
 
@@ -140,7 +151,8 @@ def edit_artist(cid, link_id):
             flash('Этот артист уже привязан.', 'warning')
             return redirect(url_for('competitions.detail', cid=cid) + '#artists')
 
-        link.artist_id = int(artist_id)
+        artist = db.get_or_404(Artist, int(artist_id))
+        link.artist_id = artist.id
         link.award_level_id = _get_or_create_lookup(AwardLevel, request.form.get('award_level'))
         file = request.files.get('award_file')
         if file and file.filename:
@@ -150,7 +162,9 @@ def edit_artist(cid, link_id):
                 link.original_filename = fn
             else:
                 flash('Ошибка при сохранении файла.', 'danger')
-        db.session.commit()
+        commit_with_audit('update', 'Артист конкурса',
+                          f'{comp.name}, {comp.year}: {artist.full_name}', link.id,
+                          link.award_level_name)
         flash('Привязка обновлена.', 'success')
         return redirect(url_for('competitions.detail', cid=cid) + '#artists')
     return render_template('competitions/edit_artist.html', c=comp, link=link, award_levels=award_levels)
@@ -159,9 +173,12 @@ def edit_artist(cid, link_id):
 @competitions_bp.route('/<int:cid>/artists/<int:link_id>/remove', methods=['POST'])
 @editor_required
 def remove_artist(cid, link_id):
+    competition = db.get_or_404(Competition, cid)
     link = db.get_or_404(CompetitionArtist, link_id)
+    label = f'{competition.name}, {competition.year}: {link.artist.full_name}'
+    details = link.award_level_name
     db.session.delete(link)
-    db.session.commit()
+    commit_with_audit('delete', 'Артист конкурса', label, link_id, details)
     flash('Артист отвязан от конкурса.', 'success')
     return redirect(url_for('competitions.detail', cid=cid) + '#artists')
 
@@ -170,7 +187,7 @@ def remove_artist(cid, link_id):
 @competitions_bp.route('/<int:cid>/productions/add', methods=['POST'])
 @editor_required
 def add_production(cid):
-    db.get_or_404(Competition, cid)
+    competition = db.get_or_404(Competition, cid)
     production_id = request.form.get('production_id')
     if not production_id:
         flash('Выберите постановку.', 'danger')
@@ -185,11 +202,16 @@ def add_production(cid):
     if file and file.filename and not fp:
         flash('Ошибка при сохранении файла.', 'danger')
 
-    db.session.add(CompetitionProduction(
+    production = db.get_or_404(Production, int(production_id))
+    link = CompetitionProduction(
         competition_id=cid, production_id=int(production_id), award_level_id=award_level_id,
         file_path=fp, original_filename=fn,
-    ))
-    db.session.commit()
+    )
+    db.session.add(link)
+    db.session.flush()
+    commit_with_audit('create', 'Постановка конкурса',
+                      f'{competition.name}, {competition.year}: {production.name}', link.id,
+                      link.award_level_name)
     flash('Постановка привязана к конкурсу.', 'success')
     return redirect(url_for('competitions.detail', cid=cid) + '#productions')
 
@@ -212,7 +234,8 @@ def edit_production(cid, link_id):
             flash('Эта постановка уже привязана.', 'warning')
             return redirect(url_for('competitions.detail', cid=cid) + '#productions')
 
-        link.production_id = int(production_id)
+        production = db.get_or_404(Production, int(production_id))
+        link.production_id = production.id
         link.award_level_id = _get_or_create_lookup(AwardLevel, request.form.get('award_level'))
         file = request.files.get('award_file')
         if file and file.filename:
@@ -222,7 +245,9 @@ def edit_production(cid, link_id):
                 link.original_filename = fn
             else:
                 flash('Ошибка при сохранении файла.', 'danger')
-        db.session.commit()
+        commit_with_audit('update', 'Постановка конкурса',
+                          f'{comp.name}, {comp.year}: {production.name}', link.id,
+                          link.award_level_name)
         flash('Привязка обновлена.', 'success')
         return redirect(url_for('competitions.detail', cid=cid) + '#productions')
     return render_template('competitions/edit_production.html', c=comp, link=link, award_levels=award_levels)
@@ -231,8 +256,11 @@ def edit_production(cid, link_id):
 @competitions_bp.route('/<int:cid>/productions/<int:link_id>/remove', methods=['POST'])
 @editor_required
 def remove_production(cid, link_id):
+    competition = db.get_or_404(Competition, cid)
     link = db.get_or_404(CompetitionProduction, link_id)
+    label = f'{competition.name}, {competition.year}: {link.production.name}'
+    details = link.award_level_name
     db.session.delete(link)
-    db.session.commit()
+    commit_with_audit('delete', 'Постановка конкурса', label, link_id, details)
     flash('Постановка отвязана от конкурса.', 'success')
     return redirect(url_for('competitions.detail', cid=cid) + '#productions')

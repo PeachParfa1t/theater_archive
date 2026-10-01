@@ -2,9 +2,11 @@ from flask import Flask, render_template, redirect, url_for, flash, request, sen
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
-import os
 
 import config
+from storage import ensure_runtime_storage
+
+ensure_runtime_storage()
 
 app = Flask(__name__)
 
@@ -12,6 +14,7 @@ app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.SQLALCHEMY_TRACK_MODIFICATIONS
 app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
+app.config['BACKUP_FOLDER'] = config.BACKUP_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = config.MAX_CONTENT_LENGTH
 
 db = SQLAlchemy(app)
@@ -19,8 +22,6 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Войдите в систему для доступа.'
 login_manager.login_message_category = 'warning'
-
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 ROLE_ADMIN    = config.ROLE_ADMIN
 ROLE_EDITOR   = config.ROLE_EDITOR
@@ -31,7 +32,7 @@ ROLE_OBSERVER = config.ROLE_OBSERVER
 # ===== MODELS =====
 
 from models import (
-    Role, User, Production, ProductionAuthor, Libretto, LibrettoRole,
+    Role, User, AuditLog, Production, ProductionAuthor, Libretto, LibrettoRole,
     Document, Artist, CastEntry, Director, DirectorPosition,
     ProductionDirector, ProductionDirectorPosition, Material,
     MaterialArtist, MaterialDirector, MusicMaterial,

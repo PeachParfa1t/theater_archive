@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db, Material, MaterialArtist, MaterialDirector, Artist, Director, editor_required
 from utils import save_file
+from audit import commit_with_audit
 
 photobank_bp = Blueprint('photobank', __name__, url_prefix='/photobank')
 
@@ -53,7 +54,8 @@ def add_photo():
                 db.session.add(MaterialDirector(material_id=mat.id, director_id=int(did)))
             except (ValueError, TypeError):
                 pass
-        db.session.commit()
+        commit_with_audit('create', 'Фотобанк', mat.title or mat.file_name or mat.url,
+                          mat.id, mat.type_display)
         flash('Фото добавлено в фотобанк.', 'success')
         return redirect(url_for('photobank.list_photobank'))
 
@@ -65,7 +67,9 @@ def add_photo():
 @editor_required
 def delete_photo(mid):
     mat = db.get_or_404(Material, mid)
+    label = mat.title or mat.file_name or mat.url
+    details = mat.type_display
     db.session.delete(mat)
-    db.session.commit()
+    commit_with_audit('delete', 'Фотобанк', label, mid, details)
     flash('Фото удалено.', 'success')
     return redirect(url_for('photobank.list_photobank'))

@@ -52,6 +52,34 @@ class User(UserMixin, db.Model):
     def can_view(self):
         return True
 
+
+class AuditLog(db.Model):
+    """Immutable, human-readable snapshot of a successful user action."""
+    __tablename__ = 'audit_logs'
+
+    id           = db.Column(db.Integer, primary_key=True)
+    created_at   = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    # Deliberately not a foreign key: the snapshot must survive a future user deletion.
+    user_id      = db.Column(db.Integer, nullable=True, index=True)
+    user_name    = db.Column(db.String(200), nullable=False)
+    user_login   = db.Column(db.String(100), nullable=False)
+    action       = db.Column(db.String(30), nullable=False, index=True)
+    object_type  = db.Column(db.String(100), nullable=False, index=True)
+    object_id    = db.Column(db.String(100))
+    object_label = db.Column(db.String(500), nullable=False)
+    details      = db.Column(db.String(1000))
+
+    ACTION_LABELS = {
+        'create': 'Создание',
+        'update': 'Изменение',
+        'delete': 'Удаление',
+        'report': 'Формирование отчёта',
+    }
+
+    @property
+    def action_label(self):
+        return self.ACTION_LABELS.get(self.action, self.action)
+
 class Production(db.Model):
     __tablename__ = 'productions'
     id                    = db.Column(db.Integer, primary_key=True)

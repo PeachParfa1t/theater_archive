@@ -5,6 +5,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
 from app import Tour
+from audit import commit_with_audit
 from . import reports_bp, safe_filename, XLSX_MIME, DOCX_MIME
 
 def _tour_artist_rows(t):
@@ -157,5 +158,11 @@ def export_tours():
 
     title = 'Отчёт по гастролям'
     if fmt == 'docx':
-        return _tours_report_docx(title, headers, rows, filtered)
-    return _tours_report_xlsx(headers, rows, filtered, title)
+        response = _tours_report_docx(title, headers, rows, filtered)
+        actual_format = 'DOCX'
+    else:
+        response = _tours_report_xlsx(headers, rows, filtered, title)
+        actual_format = 'XLSX'
+    commit_with_audit('report', 'Отчёт по гастролям', title,
+                      details=f'Формат: {actual_format}; строк: {len(rows)}')
+    return response

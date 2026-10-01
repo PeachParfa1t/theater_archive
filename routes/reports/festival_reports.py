@@ -7,6 +7,7 @@ from openpyxl.styles import Alignment
 from docx import Document as DocxDocument
 from docx.shared import Pt
 from app import FestivalEdition
+from audit import commit_with_audit
 from . import reports_bp, safe_filename, XLSX_MIME, DOCX_MIME
 
 def _festivals_report_docx(title, headers, rows, editions):
@@ -140,5 +141,11 @@ def export_festivals():
 
     title = 'Отчёт по фестивалям'
     if fmt == 'docx':
-        return _festivals_report_docx(title, headers, rows, filtered)
-    return _festivals_report_xlsx(headers, rows, filtered, title)
+        response = _festivals_report_docx(title, headers, rows, filtered)
+        actual_format = 'DOCX'
+    else:
+        response = _festivals_report_xlsx(headers, rows, filtered, title)
+        actual_format = 'XLSX'
+    commit_with_audit('report', 'Отчёт по фестивалям', title,
+                      details=f'Формат: {actual_format}; строк: {len(rows)}')
+    return response
