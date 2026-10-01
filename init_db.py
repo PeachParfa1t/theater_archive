@@ -4,6 +4,7 @@ from app import app, db, Role, User, Production, Artist, Director, DirectorPosit
 from migrations import (
     add_literary_basis_columns_to_productions,
     add_year_range_columns_to_cast_entries,
+    add_role_permission_columns,
     relax_director_position_notnull,
     create_new_tables,
     migrate_director_positions_data,
@@ -20,6 +21,7 @@ def init():
     with app.app_context():
         add_literary_basis_columns_to_productions()
         add_year_range_columns_to_cast_entries()
+        add_role_permission_columns()
         relax_director_position_notnull()
         create_new_tables()
         migrate_director_positions_data()

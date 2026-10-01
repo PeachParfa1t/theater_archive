@@ -9,10 +9,25 @@ from config import ROLE_ADMIN, ROLE_EDITOR, ROLE_ZAVLIT, ROLE_MUSIC
 
 class Role(db.Model):
     __tablename__ = 'roles'
-    id           = db.Column(db.Integer, primary_key=True)
-    name         = db.Column(db.String(50), unique=True, nullable=False)
-    display_name = db.Column(db.String(100), nullable=False)
-    users        = db.relationship('User', backref='role', lazy=True)
+    id                       = db.Column(db.Integer, primary_key=True)
+    name                     = db.Column(db.String(50), unique=True, nullable=False)
+    display_name             = db.Column(db.String(100), nullable=False)
+    allow_report_generation  = db.Column(db.Boolean, nullable=False, default=True,
+                                         server_default='1')
+    allow_report_download    = db.Column(db.Boolean, nullable=False, default=True,
+                                         server_default='1')
+    allow_archive_download   = db.Column(db.Boolean, nullable=False, default=True,
+                                         server_default='1')
+    users                    = db.relationship('User', backref='role', lazy=True)
+
+    CONFIGURABLE_PERMISSIONS = (
+        ('allow_report_generation', 'Формирование отчётов',
+         'Доступ к разделу и параметрам формирования отчётов.'),
+        ('allow_report_download', 'Скачивание отчётов',
+         'Получение сформированных файлов Word и Excel.'),
+        ('allow_archive_download', 'Скачивание файлов архива',
+         'Открытие и скачивание загруженных документов, изображений и других материалов.'),
+    )
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -48,6 +63,15 @@ class User(UserMixin, db.Model):
 
     def can_manage_users(self):
         return self.role_name == ROLE_ADMIN
+
+    def can_generate_reports(self):
+        return self.role_name == ROLE_ADMIN or bool(self.role.allow_report_generation)
+
+    def can_download_reports(self):
+        return self.role_name == ROLE_ADMIN or bool(self.role.allow_report_download)
+
+    def can_download_archive_files(self):
+        return self.role_name == ROLE_ADMIN or bool(self.role.allow_archive_download)
 
     def can_view(self):
         return True

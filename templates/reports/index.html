@@ -4,6 +4,7 @@
 {% block content %}
 <p class="text-muted">Сформируйте отчёт по выбранным параметрам и сохраните его в формате Word или Excel.</p>
 
+{% if current_user.can_download_reports() %}
 <div class="row g-3">
 
   <div class="col-md-6">
@@ -246,8 +247,15 @@
   </div>
 
 </div>
+{% else %}
+<div class="alert alert-warning">
+  Для вашей роли разрешено открывать раздел формирования отчётов, но скачивание
+  сформированных файлов отключено администратором.
+</div>
+{% endif %}
 {% endblock %}
 {% block scripts %}
+{% if current_user.can_download_reports() %}
 <script>
 (function(){
   const full = document.getElementById('secFull');
@@ -273,4 +281,5 @@ function submitProdExport(fmt){
   window.open(`/reports/production/${pid}/export?format=${fmt}&sections=${sections}`, '_blank');
 }
 </script>
+{% endif %}
 {% endblock %}

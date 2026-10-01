@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import sqlite3
+import time
+from contextlib import contextmanager
 
 from dotenv import load_dotenv
 
@@ -30,6 +32,10 @@ load_dotenv(ENV_FILE)
 
 class StorageConfigurationError(RuntimeError):
     """Raised when configured storage could cause data to be silently lost."""
+
+
+class StorageLockTimeout(RuntimeError):
+    """Raised when a file write cannot coordinate with a running full backup."""
 
 
 def _configured_path(variable: str, default: Path) -> tuple[Path, bool]:
@@ -56,6 +62,64 @@ BACKUP_FOLDER, BACKUP_FOLDER_IS_EXPLICIT = _configured_path(
 def sqlite_uri(path: Path) -> str:
     """Return an absolute SQLAlchemy SQLite URI on Windows and POSIX."""
     return f"sqlite:///{path.as_posix()}"
+
+
+@contextmanager
+def exclusive_file_lock(lock_path: Path, timeout: float = 300.0):
+    """Portable advisory lock used to serialize cooperating archive processes."""
+    lock_path = lock_path.resolve()
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_file = lock_path.open('a+b')
+    if lock_file.seek(0, os.SEEK_END) == 0:
+        lock_file.write(b'\0')
+        lock_file.flush()
+    deadline = time.monotonic() + timeout
+
+    def try_lock():
+        lock_file.seek(0)
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    while True:
+        try:
+            try_lock()
+            break
+        except OSError as error:
+            if time.monotonic() >= deadline:
+                lock_file.close()
+                raise StorageLockTimeout(
+                    f'Timed out waiting for the storage lock: {lock_path}'
+                ) from error
+            time.sleep(0.1)
+
+    try:
+        yield
+    finally:
+        lock_file.seek(0)
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        lock_file.close()
+
+
+@contextmanager
+def storage_write_lock(timeout: float = 300.0):
+    """Cross-process exclusive lock shared by file uploads and full backups.
+
+    SQLite itself remains available while a backup runs.  Only creation of new upload
+    files waits, ensuring the copied upload tree cannot contain partially written files.
+    OS file locks are released automatically if a process exits unexpectedly.
+    """
+    lock_path = DATABASE_PATH.parent / '.theater_archive_storage.lock'
+    with exclusive_file_lock(lock_path, timeout=timeout):
+        yield
 
 
 def _is_sqlite_database(path: Path) -> bool:

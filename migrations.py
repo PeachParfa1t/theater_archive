@@ -28,6 +28,15 @@ def add_year_range_columns_to_cast_entries():
     ])
 
 
+def add_role_permission_columns():
+    """Keep existing installations permissive until an administrator changes a role."""
+    _add_columns_if_missing([
+        "ALTER TABLE roles ADD COLUMN allow_report_generation BOOLEAN NOT NULL DEFAULT 1",
+        "ALTER TABLE roles ADD COLUMN allow_report_download BOOLEAN NOT NULL DEFAULT 1",
+        "ALTER TABLE roles ADD COLUMN allow_archive_download BOOLEAN NOT NULL DEFAULT 1",
+    ])
+
+
 def relax_director_position_notnull():
     """The legacy directors.position column was originally NOT NULL. The app no longer writes
     to it (positions now live in director_positions), so new inserts omit it — which SQLite

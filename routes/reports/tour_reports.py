@@ -1,10 +1,9 @@
 from io import BytesIO
 from flask import request, send_file
-from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
-from app import Tour
+from app import Tour, report_download_required
 from audit import commit_with_audit
 from . import reports_bp, safe_filename, XLSX_MIME, DOCX_MIME
 
@@ -114,7 +113,7 @@ def _tours_report_xlsx(headers, rows, tours, title):
 
 # ---------- Гастроли: фильтруемый список ----------
 @reports_bp.route('/tours/export')
-@login_required
+@report_download_required
 def export_tours():
     fmt = request.args.get('format', 'xlsx')
     city = request.args.get('city', '').strip()

@@ -187,7 +187,7 @@
         <div class="d-flex flex-wrap gap-2 mb-2">
           {% for mat in mats %}
           <div class="card material-card" style="width:140px">
-            {% if mat.is_image and mat.file_path %}
+            {% if mat.is_image and mat.file_path and current_user.can_download_archive_files() %}
             <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:90px;object-fit:cover">
             {% else %}
             <div class="d-flex align-items-center justify-content-center" style="height:90px;background:#f0f4ff;font-size:2rem;">
@@ -197,7 +197,7 @@
             <div class="card-body p-2">
               <small class="text-truncate d-block" title="{{ mat.title }}">{{ mat.title or mat.file_name or 'Файл' }}</small>
               <div class="mt-1 d-flex gap-1">
-                {% if mat.file_path %}
+                {% if mat.file_path and current_user.can_download_archive_files() %}
                 <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
                   <i class="bi bi-download"></i>
                 </a>
@@ -284,9 +284,11 @@
           </div>
         </div>
         <div class="d-flex gap-2">
+          {% if current_user.can_download_archive_files() %}
           <a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-download"></i> Скачать
           </a>
+          {% endif %}
           {% if current_user.can_edit() %}
           <form method="POST" action="{{ url_for('festivals.delete_document', eid=e.id, did=doc.id) }}" onsubmit="return confirm('Удалить документ?')">
             <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>

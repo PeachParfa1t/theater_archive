@@ -97,13 +97,18 @@ a{color:var(--imt-purple);}
     <a href="{{ url_for('photobank.list_photobank') }}" class="nav-link {% if request.blueprint=='photobank' %}active{% endif %}">
       <i class="bi bi-camera"></i>Фотобанк
     </a>
+    {% if current_user.can_generate_reports() %}
     <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.blueprint=='reports' %}active{% endif %}">
       <i class="bi bi-file-earmark-arrow-down"></i>Отчёты
     </a>
+    {% endif %}
     {% if current_user.can_manage_users() %}
     <div class="sidebar-section">Управление</div>
-    <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.blueprint=='admin' and request.endpoint!='admin.audit_log' %}active{% endif %}">
+    <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint in ['admin.users', 'admin.create_user', 'admin.edit_user', 'admin.toggle_user'] %}active{% endif %}">
       <i class="bi bi-shield-person"></i>Пользователи
+    </a>
+    <a href="{{ url_for('admin.role_permissions') }}" class="nav-link {% if request.endpoint=='admin.role_permissions' %}active{% endif %}">
+      <i class="bi bi-sliders"></i>Права ролей
     </a>
     <a href="{{ url_for('admin.audit_log') }}" class="nav-link {% if request.endpoint=='admin.audit_log' %}active{% endif %}">
       <i class="bi bi-clock-history"></i>Журнал действий

@@ -50,6 +50,35 @@ def audit_log():
         selected_action=action, selected_object_type=object_type, selected_user_id=user_id,
     )
 
+
+@admin_bp.route('/roles/permissions', methods=['GET', 'POST'])
+@admin_required
+def role_permissions():
+    roles = Role.query.order_by(Role.id).all()
+    permissions = Role.CONFIGURABLE_PERMISSIONS
+    if request.method == 'POST':
+        details = []
+        for role in roles:
+            enabled = []
+            for field, label, _description in permissions:
+                # Administrative access cannot be removed, including by a forged POST.
+                value = True if role.name == ROLE_ADMIN else (
+                    f'role_{role.id}_{field}' in request.form
+                )
+                setattr(role, field, value)
+                if value:
+                    enabled.append(label)
+            details.append(f'{role.display_name}: {", ".join(enabled) or "нет"}')
+        commit_with_audit(
+            'update', 'Права ролей', 'Настройки доступа ролей',
+            details='; '.join(details),
+        )
+        flash('Права ролей сохранены.', 'success')
+        return redirect(url_for('admin.role_permissions'))
+    return render_template(
+        'admin/role_permissions.html', roles=roles, permissions=permissions,
+    )
+
 @admin_bp.route('/users/create', methods=['GET', 'POST'])
 @admin_required
 def create_user():

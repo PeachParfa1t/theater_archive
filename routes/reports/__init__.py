@@ -1,11 +1,11 @@
 import re
 from io import BytesIO
 from flask import Blueprint, render_template, send_file
-from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
-from app import Production, Tour, TourType, FestivalStatus, CompetitionStatus, AwardLevel
+from app import (Production, Tour, TourType, FestivalStatus, CompetitionStatus,
+                 AwardLevel, report_generation_required)
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
@@ -45,7 +45,7 @@ def docx_table_response(title, headers, rows, filename):
     return send_file(buf, as_attachment=True, download_name=f'{safe_filename(filename)}.docx', mimetype=DOCX_MIME)
 
 @reports_bp.route('/')
-@login_required
+@report_generation_required
 def index():
     genres = sorted({p.genre for p in Production.query.all() if p.genre})
     tour_cities = sorted({t.city for t in Tour.query.all() if t.city})

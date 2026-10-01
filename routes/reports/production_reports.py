@@ -1,16 +1,15 @@
 from io import BytesIO
 from flask import request, send_file
-from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
-from app import db, Production
+from app import db, Production, report_download_required
 from audit import commit_with_audit
 from . import reports_bp, safe_filename, xlsx_response, docx_table_response, XLSX_MIME, DOCX_MIME
 
 # ---------- Постановки: фильтруемый список ----------
 @reports_bp.route('/productions/export')
-@login_required
+@report_download_required
 def export_productions():
     fmt = request.args.get('format', 'xlsx')
     status = request.args.get('status', '')
@@ -205,7 +204,7 @@ def _production_xlsx(p, sections):
     return wb
 
 @reports_bp.route('/production/<int:pid>/export')
-@login_required
+@report_download_required
 def export_production(pid):
     p = db.get_or_404(Production, pid)
     fmt = request.args.get('format', 'docx')

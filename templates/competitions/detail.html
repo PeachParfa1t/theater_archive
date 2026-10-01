@@ -77,7 +77,7 @@
       </a>
       <div class="d-flex align-items-center gap-2">
         <span class="badge bg-warning text-dark">{{ link.award_level_name }}</span>
-        {% if link.file_path %}
+        {% if link.file_path and current_user.can_download_archive_files() %}
         <a href="{{ url_for('uploaded_file', filename=link.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ link.original_filename }}">
           <i class="bi bi-download"></i>
         </a>
@@ -149,7 +149,7 @@
       </a>
       <div class="d-flex align-items-center gap-2">
         <span class="badge bg-warning text-dark">{{ link.award_level_name }}</span>
-        {% if link.file_path %}
+        {% if link.file_path and current_user.can_download_archive_files() %}
         <a href="{{ url_for('uploaded_file', filename=link.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="{{ link.original_filename }}">
           <i class="bi bi-download"></i>
         </a>

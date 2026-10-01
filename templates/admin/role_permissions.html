@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Права ролей — Архив ИМТ{% endblock %}
+{% block page_title %}Настройка прав ролей{% endblock %}
+{% block content %}
+<p class="text-muted">
+  Настройки дополняют существующие ограничения на редактирование, музыкальные материалы и либретто.
+</p>
+<form method="POST">
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Роль</th>
+            {% for field, label, description in permissions %}
+            <th style="min-width:190px">
+              <div>{{ label }}</div>
+              <div class="text-muted small fw-normal">{{ description }}</div>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for role in roles %}
+          <tr>
+            <td class="fw-semibold">{{ role.display_name }}</td>
+            {% for field, label, description in permissions %}
+            <td>
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="role_{{ role.id }}_{{ field }}"
+                  id="role_{{ role.id }}_{{ field }}"
+                  {% if role.name == ROLE_ADMIN or role|attr(field) %}checked{% endif %}
+                  {% if role.name == ROLE_ADMIN %}disabled{% endif %}
+                >
+                <label class="form-check-label" for="role_{{ role.id }}_{{ field }}">
+                  {% if role.name == ROLE_ADMIN %}Всегда разрешено{% else %}Разрешено{% endif %}
+                </label>
+              </div>
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-imt mt-3">
+    <i class="bi bi-check-lg"></i> Сохранить права
+  </button>
+</form>
+{% endblock %}

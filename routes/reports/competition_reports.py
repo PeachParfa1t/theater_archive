@@ -1,12 +1,11 @@
 from flask import request
-from flask_login import login_required
-from app import Competition
+from app import Competition, report_download_required
 from audit import commit_with_audit
 from . import reports_bp, xlsx_response, docx_table_response
 
 # ---------- Конкурсы: фильтруемый список ----------
 @reports_bp.route('/competitions/export')
-@login_required
+@report_download_required
 def export_competitions():
     fmt = request.args.get('format', 'xlsx')
     name_q = request.args.get('name', '').strip()

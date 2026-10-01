@@ -31,7 +31,7 @@
   {% set artist_names = mat.artist_links|map(attribute='artist')|map(attribute='full_name')|join(', ') %}
   <div class="col-md-4 col-lg-3 photo-item" data-artists="{{ artist_names|lower }}">
     <div class="card material-card h-100">
-      {% if mat.is_image and mat.file_path %}
+      {% if mat.is_image and mat.file_path and current_user.can_download_archive_files() %}
       <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="card-img-top" style="height:160px;object-fit:cover">
       {% else %}
       <div class="d-flex align-items-center justify-content-center" style="height:160px;background:#f0f4ff;font-size:3rem;">
@@ -45,7 +45,7 @@
           <a href="{{ url_for('material_detail.detail', mid=mat.id) }}" class="btn btn-outline-secondary btn-sm px-2 py-0" title="Кто на фото">
             <i class="bi bi-eye"></i>
           </a>
-          {% if mat.file_path %}
+          {% if mat.file_path and current_user.can_download_archive_files() %}
           <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm px-2 py-0">
             <i class="bi bi-download"></i>
           </a>

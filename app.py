@@ -86,6 +86,26 @@ def music_required(f):
         return f(*args, **kwargs)
     return wrapped
 
+def report_generation_required(f):
+    @wraps(f)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.can_generate_reports():
+            abort(403)
+        return f(*args, **kwargs)
+    return wrapped
+
+def report_download_required(f):
+    @wraps(f)
+    @login_required
+    def wrapped(*args, **kwargs):
+        # An export URL creates the report and immediately returns its file, so both
+        # independently configurable permissions are required for this combined action.
+        if not (current_user.can_generate_reports() and current_user.can_download_reports()):
+            abort(403)
+        return f(*args, **kwargs)
+    return wrapped
+
 # ===== HELPERS =====
 
 from utils import allowed_file, save_file, get_or_create_libretto, get_or_create_libretto_role
@@ -141,6 +161,9 @@ def internal_server_error(e):
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):
+    if not current_user.can_download_archive_files():
+        abort(403)
+
     # Music files share the generic upload endpoint with the rest of the archive, so this
     # endpoint must enforce the same role check as the music-material blueprint. The path
     # prefix also protects orphaned/new files that are not (or are not yet) linked in the DB;
@@ -149,6 +172,11 @@ def uploaded_file(filename):
     normalized_path = filename.replace('\\', '/').lstrip('/').lower()
     if (music_material or normalized_path.startswith('music/')) and not current_user.can_manage_music():
         return music_access_denied()
+
+    libretto_file = (Libretto.query.filter_by(file_path=filename).first() or
+                     LibrettoRole.query.filter_by(file_path=filename).first())
+    if libretto_file and not current_user.can_view_libretto():
+        abort(403)
 
     download_name = music_material.original_filename if music_material else None
     for Model, name_attr in ((Document, 'file_name'), (Material, 'file_name'), (Libretto, 'file_name'),

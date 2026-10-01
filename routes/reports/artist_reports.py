@@ -1,10 +1,9 @@
 from io import BytesIO
 from flask import request, send_file
-from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from docx import Document as DocxDocument
-from app import CastEntry, Artist, Production
+from app import CastEntry, Artist, Production, report_download_required
 from audit import commit_with_audit
 from . import reports_bp, safe_filename, XLSX_MIME, DOCX_MIME
 
@@ -95,7 +94,7 @@ def _artist_report_xlsx(headers, rows, artists, sections, title):
     return send_file(buf, as_attachment=True, download_name=f'{safe_filename(title)}.xlsx', mimetype=XLSX_MIME)
 
 @reports_bp.route('/artists/export')
-@login_required
+@report_download_required
 def export_artists():
     fmt = request.args.get('format', 'xlsx')
     q = request.args.get('q', '').strip()

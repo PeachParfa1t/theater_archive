@@ -21,7 +21,7 @@
       </a>
     </div>
 
-    {% if mat.is_image and mat.file_path %}
+    {% if mat.is_image and mat.file_path and current_user.can_download_archive_files() %}
     <img src="{{ url_for('uploaded_file', filename=mat.file_path) }}" class="img-fluid rounded mb-3" style="max-height:500px">
     {% elif mat.file_path %}
     <div class="d-flex align-items-center justify-content-center bg-light rounded mb-3" style="height:200px;font-size:4rem;">
@@ -30,7 +30,7 @@
     {% endif %}
 
     <div class="d-flex gap-2">
-      {% if mat.file_path %}
+      {% if mat.file_path and current_user.can_download_archive_files() %}
       <a href="{{ url_for('uploaded_file', filename=mat.file_path) }}" target="_blank" class="btn btn-imt btn-sm">
         <i class="bi bi-download"></i> Скачать {{ mat.file_name }}
       </a>
